@@ -35,6 +35,10 @@ alphalith gui --no-browser       # 仅启动服务
 
 ![Alphalith GUI 投研分析 - 茅台](docs/gui-analysis-screenshot.png)
 
+![Alphalith GUI 策略回测 - 多策略对比](docs/gui-backtest-screenshot.png)
+
+![Alphalith GUI 投研面板 - 多市场行情](docs/gui-dashboard-screenshot.png)
+
 ### 七大功能页面
 
 | 页面 | 功能亮点 |
