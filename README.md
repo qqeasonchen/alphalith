@@ -76,19 +76,19 @@ alphalith gui --port 28080   # custom port
 
 4 AI analysts → multi-round debate → risk review → final decision. Real-time streaming output.
 
-<img src="docs/screenshots/research_300308.png" alt="Research Analysis" width="100%"/>
+![Research Analysis](docs/screenshots/research_300308.png)
 
 #### 📈 Strategy Backtest (策略回测)
 
 7 built-in strategies, multi-strategy comparison table with Sharpe / Max Drawdown / Win Rate metrics.
 
-<img src="docs/screenshots/backtest_300308.png" alt="Strategy Backtest" width="100%"/>
+![Strategy Backtest](docs/screenshots/backtest_300308.png)
 
 #### 📊 Investment Dashboard (投研面板)
 
 Multi-stock monitoring dashboard: price cards, signal matrix, strategy heatmaps. Exportable.
 
-<img src="docs/screenshots/dashboard_300308.png" alt="Investment Dashboard" width="100%"/>
+![Investment Dashboard](docs/screenshots/dashboard_300308.png)
 
 ### GUI Features
 

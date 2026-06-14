@@ -76,19 +76,19 @@ alphalith gui --port 28080   # 自定义端口
 
 4 位 AI 分析师 → 多轮多空辩论 → 风控评审 → 最终决策。流式实时输出。
 
-<img src="docs/screenshots/research_300308.png" alt="投研分析" width="100%"/>
+![投研分析](docs/screenshots/research_300308.png)
 
 #### 📈 策略回测
 
 7 种内置策略，多策略对比表格，含 Sharpe / 最大回撤 / 胜率等指标。
 
-<img src="docs/screenshots/backtest_300308.png" alt="策略回测" width="100%"/>
+![策略回测](docs/screenshots/backtest_300308.png)
 
 #### 📊 投研面板
 
 多标的监控面板：行情卡片 / 策略信号矩阵 / 回测热力图。可导出自包含 HTML 文件。
 
-<img src="docs/screenshots/dashboard_300308.png" alt="投研面板" width="100%"/>
+![投研面板](docs/screenshots/dashboard_300308.png)
 
 ### 功能页面
 
