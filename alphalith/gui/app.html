@@ -336,27 +336,34 @@ a { color:inherit; text-decoration:none; }
 /* Chat Area */
 .chat-area {
   flex-shrink:0; border-top:1px solid var(--border-header); background:var(--bg-header);
-  padding:12px 20px 14px;
+  padding:6px 14px 8px;
 }
-.chat-messages { max-height:180px; overflow-y:auto; margin-bottom:10px; display:none; }
+.chat-messages { max-height:100px; overflow-y:auto; margin-bottom:6px; display:none; }
 .chat-messages.show { display:block; }
 .msg { padding:6px 0; font-size:13px; line-height:1.5; }
 .msg-user { color:var(--text-primary); font-weight:550; }
 .msg-assistant { color:var(--text-secondary); }
-.msg-system { color:var(--text-tertiary); font-style:italic; font-size:12px; }
+.msg-alphalith { color:var(--text-tertiary); font-style:italic; font-size:12px; }
 .msg-error { color:var(--red); }
 
 .input-box {
   background:var(--bg-input); border:1px solid var(--border-default);
-  border-radius:10px; padding:10px 14px; transition:border-color .2s;
+  border-radius:8px; padding:6px 10px; transition:border-color .2s;
 }
 .input-box:focus-within { border-color:var(--accent); }
 .input-textarea {
-  width:100%; min-height:36px; max-height:100px; border:none; resize:none;
-  background:none; font-size:13px; line-height:1.5; color:var(--text-primary);
+  width:100%; min-height:24px; max-height:60px; border:none; resize:none;
+  background:none; font-size:12px; line-height:1.4; color:var(--text-primary);
   font-family:inherit; outline:none; padding:2px 0;
 }
 .input-textarea::placeholder { color:var(--text-placeholder); }
+.symbol-valid { border-color:#10B981 !important; }
+.symbol-invalid { border-color:#EF4444 !important; }
+.symbol-status { font-size:10px; margin-left:4px; white-space:nowrap; }
+.symbol-status.ok { color:#10B981; }
+.symbol-status.err { color:#EF4444; }
+.format-hint { font-size:10px; color:var(--text-secondary); margin-left:4px; white-space:nowrap; opacity:0.75; }
+@media (max-width:900px) { .format-hint { display:none; } }
 
 .input-toolbar {
   display:flex; align-items:center; justify-content:space-between;
@@ -627,7 +634,6 @@ a { color:inherit; text-decoration:none; }
     <div class="am-meta" id="amMeta">—</div>
   </div>
   <div class="am-item" onclick="switchPage('settings'); closeAccountMenu()">⚙️ 系统配置</div>
-  <div class="am-item" onclick="switchPage('history'); closeAccountMenu()">🕐 决策历史</div>
   <div class="am-item danger" onclick="logout()">🚪 退出登录</div>
 </div>
 
@@ -635,8 +641,7 @@ a { color:inherit; text-decoration:none; }
   <!-- ====== SIDEBAR ====== -->
   <aside class="app-sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#6366F1"/><text x="16" y="22" text-anchor="middle" fill="#fff" font-size="16" font-weight="bold">A</text></svg>
-      <div><span class="logo-text">Alphalith</span><span class="logo-sub">v0.2.0</span></div>
+      <div><span class="logo-text">Alphalith</span><span class="logo-sub">v0.2.1</span></div>
     </div>
     <nav class="sidebar-menu-wrap" id="sidebarMenu">
       <div class="menu-item active" data-page="research">
@@ -679,7 +684,7 @@ a { color:inherit; text-decoration:none; }
           <div class="user-status" id="userStatus">● 请先登录</div>
         </div>
       </div>
-      <div class="version">Alphalith v0.2.0 · AI 投研引擎</div>
+      <div class="version">Alphalith v0.2.1 · AI 投研引擎</div>
     </div>
   </aside>
 
@@ -713,7 +718,10 @@ a { color:inherit; text-decoration:none; }
   </div>
   <div class="action-bar">
     <label>标的</label>
-    <input type="text" class="action-input" id="researchSymbol" placeholder="单个: 腾讯  |  批量: 腾讯 阿里 美团" style="width:320px">
+    <input type="text" class="action-input" id="researchSymbol" value="" placeholder="输入标的代码或名称，空格分隔多个" style="width:320px"
+      onblur="validateSymbol(this, document.getElementById('researchSymbolStatus'))">
+    <span id="researchSymbolStatus" class="symbol-status"></span>
+    <span class="format-hint">💡 A股:600519｜港股:9988.HK｜美股:AAPL｜中文:腾讯控股</span>
     <label>深度</label>
     <select class="action-select" id="researchDepth">
       <option value="quick">Quick — 仅分析师</option>
@@ -754,7 +762,9 @@ a { color:inherit; text-decoration:none; }
   </div>
   <div class="action-bar">
     <label>标的</label>
-    <input type="text" class="action-input" id="btSymbol" placeholder="如：600519、寒武纪-U" style="width:160px">
+    <input type="text" class="action-input" id="btSymbol" placeholder="格式：600519 / 9988.HK / AAPL" style="width:160px"
+      onblur="validateSymbol(this, document.getElementById('btSymbolStatus'))">
+    <span id="btSymbolStatus" class="symbol-status"></span>
     <label>周期(天)</label>
     <input type="number" class="action-input" id="btDays" value="180" style="width:80px">
     <label>持有期</label>
@@ -804,7 +814,8 @@ a { color:inherit; text-decoration:none; }
   </div>
   <div class="action-bar">
     <label>标的</label>
-    <input type="text" class="action-input" id="sigSymbol" placeholder="如：600519" style="width:160px">
+    <input type="text" class="action-input" id="sigSymbol" placeholder="格式：600519 / 9988.HK / AAPL（可多标的空格分隔）" style="width:160px" onblur="validateSymbol(this, document.getElementById('sigSymbolStatus'))">
+    <span id="sigSymbolStatus" class="symbol-status"></span>
     <button class="btn-primary" onclick="loadSignals()">▶ 获取信号</button>
   </div>
   <div class="result-area" id="signalsResult">
@@ -823,7 +834,8 @@ a { color:inherit; text-decoration:none; }
   </div>
   <div class="action-bar">
     <label>筛选标的</label>
-    <input type="text" class="action-input" id="histSymbol" placeholder="留空显示全部" style="width:160px">
+    <input type="text" class="action-input" id="histSymbol" placeholder="留空=全部，或输入标的如：600519（格式同左）" style="width:160px" onblur="validateSymbol(this, document.getElementById('histSymbolStatus'))">
+    <span id="histSymbolStatus" class="symbol-status"></span>
     <label>条数</label>
     <input type="number" class="action-input" id="histLimit" value="20" style="width:70px">
     <button class="btn-primary" onclick="loadHistory()">加载历史</button>
@@ -842,15 +854,19 @@ a { color:inherit; text-decoration:none; }
   </div>
   <div class="action-bar">
     <label>标的列表</label>
-    <input type="text" class="action-input" id="cmpSymbols" placeholder="用空格分隔：腾讯 阿里" style="width:260px">
+    <input type="text" class="action-input" id="cmpSymbols" placeholder="用空格分隔：600519 000001 / 腾讯 阿里" style="width:260px" onblur="validateSymbol(this, document.getElementById('cmpSymbolsStatus'))">
+    <span id="cmpSymbolsStatus" class="symbol-status"></span>
     <label>策略</label>
-    <select class="action-select" id="cmpStrategy">
-      <option value="ma_cross">MA 均线交叉</option>
+    <select class="action-select" id="cmpStrategy" multiple style="height:auto;min-height:36px">
+      <option value="ma_cross" selected>MA 均线交叉</option>
       <option value="momentum" selected>动量策略</option>
-      <option value="mean_reversion">均值回归</option>
+      <option value="reversal">反转策略</option>
       <option value="bollinger">布林带突破</option>
       <option value="rsi">RSI 超买超卖</option>
+      <option value="macd">MACD</option>
+      <option value="llm">LLM 智能</option>
     </select>
+    <span style="font-size:11px;color:var(--text-tertiary)">Ctrl/Cmd+Click 多选</span>
     <label>周期</label>
     <input type="number" class="action-input" id="cmpDays" value="180" style="width:80px">
     <button class="btn-primary" onclick="runCompare()">▶ 对比分析</button>
@@ -931,16 +947,66 @@ a { color:inherit; text-decoration:none; }
             <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
           </div>
         </div>
-        <div class="input-footer">
-          <span>内容由 AI 生成，请核实重要信息</span>
-          <span>Alphalith v0.2.0</span>
+        <div class="input-footer" style="font-size:10px;margin-top:3px">
+          <span style="font-size:10px">内容由 AI 生成 · Alphalith v0.2.1</span>
         </div>
       </div>
     </div>
+  <div id="formatHint" style="display:none;position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:6px 14px;font-size:11px;color:var(--text-secondary);z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.3);pointer-events:none;"></div>
   </div>
 </div>
 
 <script>
+
+// ============================================================
+// SYMBOL VALIDATION
+// ============================================================
+const symbolValidationCache = {};
+
+async function validateSymbol(inputEl, statusEl) {
+  const raw = inputEl.value.trim();
+  if (!raw) { 
+    inputEl.classList.remove('symbol-valid','symbol-invalid');
+    if (statusEl) statusEl.textContent = '';
+    return;
+  }
+  // Check cache
+  if (symbolValidationCache[raw] !== undefined) {
+    applyValidation(inputEl, statusEl, symbolValidationCache[raw]);
+    return;
+  }
+  try {
+    const resp = await fetch('/api/resolve', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({query: raw})
+    });
+    const data = await resp.json();
+    const ok = !data.error && data.symbol;
+    symbolValidationCache[raw] = ok;
+    applyValidation(inputEl, statusEl, ok);
+  } catch(e) {
+    inputEl.classList.remove('symbol-valid','symbol-invalid');
+    if (statusEl) statusEl.textContent = '';
+  }
+}
+
+function applyValidation(inputEl, statusEl, ok) {
+  inputEl.classList.remove('symbol-valid','symbol-invalid');
+  if (ok) {
+    inputEl.classList.add('symbol-valid');
+    if (statusEl) statusEl.innerHTML = '<span class="symbol-status ok">✓ 标的有效</span>';
+  } else {
+    inputEl.classList.add('symbol-invalid');
+    if (statusEl) statusEl.innerHTML = '<span class="symbol-status err">✗ 标的无效，请检查代码或名称</span>';
+  }
+}
+
+function clearValidation(inputEl, statusEl) {
+  inputEl.classList.remove('symbol-valid','symbol-invalid');
+  if (statusEl) statusEl.textContent = '';
+}
+
 // ============================================================
 // STATE
 // ============================================================
@@ -972,7 +1038,26 @@ function switchPage(page) {
   if (pageEl) pageEl.classList.add('active');
   S.currentPage = page;
   document.getElementById('breadcrumb').textContent = pageTitles[page] || page;
+  // Auto-load data on page entry
+  if (page === 'history') loadHistory();
   setTimeout(disposeCharts, 50);
+  // Format hint for symbol inputs
+
+// Show format hint on any symbol input focus
+document.querySelectorAll('input[id*="Symbol"], input[id*="symbol"]').forEach(el => {
+  el.addEventListener('focus', function() {
+    const hint = document.getElementById('formatHint');
+    if (hint) {
+      hint.innerHTML = '📌 标的格式：<code>600519</code>（A股） / <code>9988.HK</code>（港股） / <code>AAPL</code>（美股）';
+      hint.style.display = 'block';
+    }
+  });
+  el.addEventListener('blur', function() {
+    const hint = document.getElementById('formatHint');
+    if (hint) hint.style.display = 'none';
+  });
+});
+  
 }
 
 function toggleSidebar() {
@@ -1088,7 +1173,13 @@ function hideProgress(boxId){
 
 async function runAnalyze() {
   const raw = document.getElementById('researchSymbol').value.trim();
-  if (!raw) { addMsg('请输入标的代码', 'system'); return; }
+  if (!raw) { addMsg('请输入标的代码', 'alphalith'); return; }
+  // Quick client-side format check
+  const syms = raw.split(/[\s,，]+/).filter(Boolean);
+  const invalid = syms.filter(s => !/^[0-9]{6}$/.test(s) && !/^[0-9]{5}\.HK$/i.test(s) && !/^[A-Z]{1,5}$/.test(s));
+  if (invalid.length) {
+    addMsg('⚠️ 可能无效的标的格式: ' + invalid.join(', ') + ' — 正确格式如：600519 / 9988.HK / AAPL', 'alphalith');
+  }
   const depth = document.getElementById('researchDepth').value;
   const stream = document.getElementById('researchStream').checked;
   const symbols = raw.split(/[\s,，]+/).filter(Boolean);
@@ -1102,7 +1193,7 @@ async function runAnalyze() {
 
 async function handleAnalyzeReq(text) {
   const m = text.match(/(?:\/analyze\s+)?(.+)/);
-  if (!m) { addMsg('格式: /analyze 标的', 'system'); return; }
+  if (!m) { addMsg('格式: /analyze 标的', 'alphalith'); return; }
   let depth = S.depths[S.depthIndex];
   if (/快速|quick/i.test(text)) depth='quick';
   if (/标准|standard/i.test(text)) depth='standard';
@@ -1174,17 +1265,19 @@ async function doAnalyzeStream(symbol, depth) {
           appendLog(`🧑‍💼 [${parsed.name}] 立场=${parsed.stance}  ${(parsed.summary||'').slice(0,120)}`);
           showProgress('researchProgress', parsed.pct||30, `分析师 ${parsed.name} 完成`, logBuf);
         } else if (event === 'debate_bull') {
-          debates.push({ round: parsed.round, bull: parsed.text, bear: '' });
-          appendLog(`🐂 [Round ${parsed.round}] 看多: ${(parsed.text||'').slice(0,140)}`);
-          showProgress('researchProgress', parsed.pct||60, `第${parsed.round}轮 多方发言`, logBuf);
+          debates.push({ round: parsed.round, bull: parsed.bull, bear: '' });
+          appendLog(`🐂 [Round ${parsed.round}] 看多: ${(parsed.bull||'').slice(0,140)}`);
+          showProgress('researchProgress', parsed.pct||(60+parsed.round*8), `第${parsed.round}轮 多方发言`, logBuf);
         } else if (event === 'debate_bear') {
-          if (debates.length && !debates[debates.length-1].bear) debates[debates.length-1].bear = parsed.text;
-          else debates.push({ round: parsed.round, bull:'', bear: parsed.text });
-          appendLog(`🐻 [Round ${parsed.round}] 看空: ${(parsed.text||'').slice(0,140)}`);
-          showProgress('researchProgress', parsed.pct||70, `第${parsed.round}轮 空方反驳`, logBuf);
+          if (debates.length && !debates[debates.length-1].bear) debates[debates.length-1].bear = parsed.bear;
+          else debates.push({ round: parsed.round, bull:'', bear: parsed.bear });
+          appendLog(`🐻 [Round ${parsed.round}] 看空: ${(parsed.bear||'').slice(0,140)}`);
+          showProgress('researchProgress', parsed.pct||(70+parsed.round*8), `第${parsed.round}轮 空方反驳`, logBuf);
         } else if (event === 'done') {
           finalData = parsed;
           showProgress('researchProgress', 100, '完成', logBuf);
+          reader.cancel();
+          break;
         } else if (event === 'error') {
           throw new Error(parsed.message || '流式分析出错');
         }
@@ -1202,13 +1295,13 @@ async function doAnalyzeStream(symbol, depth) {
   } catch (err) {
     rmTyping(tid);
     hideProgress('researchProgress');
-    addMsg('⚠️ 流式分析失败: '+err.message+'，回退到普通模式', 'system');
+    addMsg('⚠️ 流式分析失败: '+err.message+'，回退到普通模式', 'alphalith');
     await doAnalyze(symbol, depth);
   }
 }
 
 async function doAnalyzeBatch(symbols, depth) {
-  addMsg('🔄 开始批量分析 '+symbols.length+' 个标的...', 'system');
+  addMsg('🔄 开始批量分析 '+symbols.length+' 个标的...', 'alphalith');
   const results = [];
   for (let i=0; i<symbols.length; i++) {
     const sym = symbols[i];
@@ -1347,7 +1440,7 @@ function exportAdp() {
 // ============================================================
 async function runDashboard() {
   const raw = document.getElementById('dashSymbols').value.trim();
-  if (!raw) { addMsg('请输入标的', 'system'); return; }
+  if (!raw) { addMsg('请输入标的', 'alphalith'); return; }
   const symbols = raw.split(/[\s,，]+/).filter(Boolean).slice(0, 10);
   showProgress('dashboardResult', 20, '正在生成投研面板...');
   try {
@@ -1355,19 +1448,33 @@ async function runDashboard() {
     hideProgress('dashboardResult');
     const html = data.html || '';
     if (!html) { addMsg('❌ 生成失败: 空内容', 'error'); return; }
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
-      addMsg('✅ Dashboard 已在新窗口打开', 'assistant');
-    } else {
-      document.querySelector('#dashboardResult').innerHTML = '<div class="card"><div class="card-header"><h3>📊 投研面板</h3></div>'
-        + '<div class="card-body"><iframe style="width:100%;height:600px;border:1px solid var(--border-default);border-radius:8px"></iframe></div></div>';
-      const iframe = document.querySelector('#dashboardResult iframe');
-      if (iframe) iframe.srcdoc = html;
-      addMsg('✅ Dashboard 已生成（弹出窗口被拦截）', 'assistant');
+    // 直接在当前页面下方展示（iframe 隔离样式）
+    const dashEl = document.querySelector('#dashboardResult');
+    if (dashEl) { dashEl.style.display = ''; dashEl.style.visibility = ''; }
+    document.querySelector('#dashboardResult').innerHTML = `
+      <div class="card" style="overflow:hidden">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h3>📊 投研面板</h3>
+          <button class="btn-primary" style="font-size:12px;padding:4px 12px" onclick="downloadDashboard()">⬇ 下载 HTML</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <iframe id="dashIframe" style="width:100%;height:70vh;border:none;border-radius:0 0 8px 8px"></iframe>
+        </div>
+      </div>`;
+    const iframe = document.getElementById('dashIframe');
+    if (iframe && html) { 
+      iframe.srcdoc = html; 
+      // Fallback: if srcdoc fails (some browsers), try blob URL
+      iframe.onerror = function() {
+        try {
+          var blob = new Blob([html], {type:'text/html'});
+          this.src = URL.createObjectURL(blob);
+        } catch(e) {}
+      };
+    } else if (!html) {
+      addMsg('⚠️ Dashboard 内容为空，请检查标的是否有效', 'alphalith');
     }
+    addMsg('✅ Dashboard 已生成', 'assistant');
   } catch (err) {
     hideProgress('dashboardResult');
     addMsg('❌ Dashboard 生成失败: '+err.message, 'error');
@@ -1375,26 +1482,32 @@ async function runDashboard() {
 }
 
 async function downloadDashboard() {
-  const raw = document.getElementById('dashSymbols').value.trim();
-  if (!raw) { addMsg('请输入标的', 'system'); return; }
-  const symbols = raw.split(/[\s,，]+/).filter(Boolean).slice(0, 10);
-  showProgress('dashboardResult', 20, '正在生成...');
-  try {
-    const data = await api('/api/dashboard', { symbols });
-    hideProgress('dashboardResult');
-    const html = data.html || '';
-    if (!html) return;
-    const blob = new Blob([html], { type:'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'alphalith_dashboard_'+Date.now()+'.html';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    addMsg('✅ Dashboard HTML 已下载', 'assistant');
-  } catch (err) {
-    hideProgress('dashboardResult');
-    addMsg('❌ 下载失败: '+err.message, 'error');
+  // 优先从已渲染的 iframe 读取，避免重复请求
+  const iframe = document.getElementById('dashIframe');
+  let html = '';
+  if (iframe && iframe.srcdoc) {
+    html = iframe.srcdoc;
   }
+  if (!html) {
+    const raw = document.getElementById('dashSymbols').value.trim();
+    if (!raw) { addMsg('请输入标的', 'alphalith'); return; }
+    const symbols = raw.split(/[\s,，]+/).filter(Boolean).slice(0, 10);
+    try {
+      const data = await api('/api/dashboard', { symbols });
+      html = data.html || '';
+    } catch (err) {
+      addMsg('❌ 下载失败: '+err.message, 'error');
+      return;
+    }
+  }
+  if (!html) { addMsg('❌ 没有可下载的内容', 'error'); return; }
+  const blob = new Blob([html], { type:'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'alphalith_dashboard_'+Date.now()+'.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  addMsg('✅ Dashboard HTML 已下载', 'assistant');
 }
 
 const STRATEGY_LABELS = {
@@ -1426,42 +1539,59 @@ function setStrategyCheck(strategy) {
 // ============================================================
 async function runBacktest() {
   const sym = document.getElementById('btSymbol').value.trim();
-  if (!sym) { addMsg('请输入标的', 'system'); return; }
-  const strategy = document.getElementById('btStrategy').value;
+  if (!sym) { addMsg('请输入标的', 'alphalith'); return; }
+  const strategies = getSelectedStrategies();
+  if (!strategies.length) { addMsg('请至少勾选一个策略', 'alphalith'); return; }
   const days = parseInt(document.getElementById('btDays').value)||180;
   const horizon = parseInt(document.getElementById('btHorizon').value)||10;
-  await doBacktest(sym, strategy, days, horizon);
+  showProgress('backtestProgress', 5, '正在运行 ' + strategies.length + ' 个策略...', `标的: ${sym}`);
+  await doBacktest(sym, strategies, days, horizon);
+  hideProgress('backtestProgress');
 }
 
 async function handleBacktestReq(text) {
   const parts = text.replace(/\/backtest\s*/i,'').trim().split(/\s+/);
-  if (parts.length<1) { addMsg('格式: /backtest 标的 策略 天数', 'system'); return; }
-  const smap = {'均线':'ma_cross','动量':'momentum','均值回归':'mean_reversion','布林带':'bollinger','rsi':'rsi','vwap':'vwap_reversion','llm':'llm'};
+  if (parts.length<1) { addMsg('格式: /backtest 标的 [策略] [天数]', 'alphalith'); return; }
+  const smap = {'均线':'ma_cross','动量':'momentum','反转':'reversal','布林带':'bollinger','rsi':'rsi','macd':'macd','llm':'llm'};
   const sym = parts[0];
-  const strategy = parts[1] ? (smap[parts[1]]||parts[1]) : 'momentum';
+  const strategy = parts[1] ? (smap[parts[1]]||parts[1]) : null;
   const days = parseInt(parts[2])||180;
   const horizon = parseInt(parts[3])||10;
   document.getElementById('btSymbol').value=sym;
-  document.getElementById('btStrategy').value=strategy;
   document.getElementById('btDays').value=days;
   document.getElementById('btHorizon').value=horizon;
   switchPage('backtest');
-  await doBacktest(sym, strategy, days, horizon);
+  const strategies = strategy ? [strategy] : getSelectedStrategies();
+  if (!strategies.length) { addMsg('请指定策略或勾选复选框', 'alphalith'); return; }
+  showProgress('backtestProgress', 5, '正在运行 ' + strategies.length + ' 个策略...');
+  await doBacktest(sym, strategies, days, horizon);
+  hideProgress('backtestProgress');
 }
 
-async function doBacktest(symbol, strategy, days, horizon) {
-  const tid = 'typing-bt-'+Date.now();
-  addTyping(tid);
-  try {
-    const data = await api('/api/backtest', { symbol, strategy, period_days:days, horizon });
-    rmTyping(tid);
-    renderBacktest(data);
-    addMsg('✅ '+symbol+' '+strategy+' 回测完成 ('+days+'天)', 'assistant');
-  } catch (err) {
-    rmTyping(tid);
-    addMsg('❌ 回测失败: '+err.message, 'error');
-    renderError('#backtestResult', err.message);
+async function doBacktest(symbol, strategies, days, horizon) {
+  const results = [];
+  for (let i = 0; i < strategies.length; i++) {
+    const s = strategies[i];
+    const pct = Math.round((i+1)/strategies.length*90);
+    try {
+      showProgress('backtestProgress', pct, (STRATEGY_LABELS[s]||s) + ' 回测中...', `[${i+1}/${strategies.length}] ${s} ${symbol}`);
+      // Force UI repaint before async call
+      await new Promise(r => setTimeout(r, 10));
+      const data = await api('/api/backtest', { symbol, strategy: s, period_days: days, horizon });
+      results.push({ strategy: s, success: true, data });
+      showProgress('backtestProgress', Math.min(pct+5,95), '✅ ' + (STRATEGY_LABELS[s]||s) + ' 完成', '');
+      await new Promise(r => setTimeout(r, 20));
+    } catch (err) {
+      results.push({ strategy: s, success: false, error: err.message });
+      showProgress('backtestProgress', pct, '❌ ' + (STRATEGY_LABELS[s]||s) + ' 失败: ' + err.message, '');
+      await new Promise(r => setTimeout(r, 20));
+    }
   }
+  showProgress('backtestProgress', 100, '完成', '');
+  setTimeout(() => hideProgress('backtestProgress'), 1500);
+  renderBacktest(results);
+  const ok = results.filter(r=>r.success).length;
+  addMsg('✅ '+symbol+' 回测完成: '+ok+'/'+strategies.length, 'assistant');
 }
 
 function renderBacktest(results) {
@@ -1477,7 +1607,27 @@ function renderBacktest(results) {
       document.querySelector('#backtestResult').innerHTML = `<div class="empty-state"><p>回测失败: ${r&&r.error||'未知错误'}</p></div>`;
       return;
     }
-    const d = r.data, m = d.metrics || {}, trades = d.trades || [], equity = d.equity_curve || [];
+    const d = r.data;
+    // Normalize: backend to_dict() returns flat fields, NOT nested .metrics.*
+    const m = {
+      total_return_pct: (d.total_pnl||0),
+      annual_return_pct: ((d.total_pnl||0)/(d.bars||252)*252),  // rough annualize
+      max_drawdown_pct: Math.abs(d.max_drawdown||0) * 100,       // backend returns neg value
+      sharpe_ratio: d.sharpe||0,
+      sortino_ratio: d.sortino||0,
+      calmar_ratio: d.calmar||0,
+      info_ratio: d.info_ratio||0,
+      total_pnl: d.total_pnl||0,
+      buy_hold_return: (d.buy_hold_return||0)*100,
+      alpha: (d.alpha_vs_bh||0)*100,
+      beta: null,
+      max_win_streak: d.max_win_streak||0,
+      max_loss_streak: d.max_loss_streak||0,
+      win_loss_ratio: d.win_loss_ratio||0,
+      win_rate_pct: (d.win_rate||0)*100,
+    };
+    const trades = d.trades || [];
+    const equity = d.bar_closes ? d.bar_closes.map((c,i)=>({x:i,y:c})) : [];
     const metricsHtml = [
       ['总收益率%', m.total_return_pct, m.total_return_pct>=0],
       ['年化收益%', m.annual_return_pct, m.annual_return_pct>=0],
@@ -1514,16 +1664,18 @@ function renderBacktest(results) {
     if (equity.length) setTimeout(()=>renderEChart('btChartDom', equity, STRATEGY_LABELS[r.strategy]||r.strategy), 100);
   } else {
     const rows = results.map((r,i)=>{
-      const m = r.success ? (r.data.metrics||{}) : {};
+      const d = r.data || {};
+      // Normalize flat fields from backend to_dict()
+      const trp = d.total_pnl||0; const dd = Math.abs(d.max_drawdown||0)*100; const wr = (d.win_rate||0)*100;
       return `<tr>
         <td>${i+1}</td><td><strong>${escHtml(STRATEGY_LABELS[r.strategy]||r.strategy)}</strong></td>
-        <td class="${r.success?'':'price-down'}">${r.success?(m.total_return_pct||0).toFixed(2)+'%':'失败'}</td>
-        <td>${r.success?((m.sharpe_ratio||0).toFixed(2)):'-'}</td>
-        <td>${r.success?((m.max_drawdown_pct||0).toFixed(2)+'%'):'-'}</td>
-        <td>${r.success?((m.win_rate_pct||0).toFixed(2)+'%'):'-'}</td>
-        <td>${r.success?((m.calmar_ratio||0).toFixed(2)):'-'}</td>
-        <td>${r.success?((m.info_ratio||0).toFixed(2)):'-'}</td>
-        <td>${r.success?((m.total_pnl||0).toFixed(2)):'-'}</td>
+        <td class="${r.success?(trp>=0?'price-up':'price-down'):'price-down'}">${r.success?trp.toFixed(2)+'%':'失败'}</td>
+        <td>${r.success?((d.sharpe||0).toFixed(2)):'-'}</td>
+        <td>${r.success?(dd.toFixed(2)+'%'):'-'}</td>
+        <td>${r.success?(wr.toFixed(2)+'%'):'-'}</td>
+        <td>${r.success?((d.calmar||0).toFixed(2)):'-'}</td>
+        <td>${r.success?((d.info_ratio||0).toFixed(2)):'-'}</td>
+        <td>${r.success?(trp.toFixed(2)):'-'}</td>
       </tr>`;
     }).join('');
     html = `<div class="card"><div class="card-header"><h3>📊 多策略对比 (${results.length} 个)</h3></div>
@@ -1536,13 +1688,16 @@ function renderBacktest(results) {
 // SIGNALS
 // ============================================================
 async function loadSignals() {
-  const sym = document.getElementById('sigSymbol').value.trim();
+  const raw = document.getElementById('sigSymbol').value.trim();
+  if (!raw) { addMsg('请输入标的', 'alphalith'); return; }
+  const symbols = raw.split(/[\s,，]+/).filter(Boolean);
   const tid = 'typing-sig-'+Date.now();
   addTyping(tid);
   try {
-    const data = await api('/api/signals', { symbols: sym?[sym]:[] });
+    const data = await api('/api/signals', { symbols });
     rmTyping(tid);
     renderSignals(data.signals||[]);
+    addMsg('✅ 信号获取完成 ('+symbols.length+' 个标的)', 'assistant');
   } catch (err) {
     rmTyping(tid);
     addMsg('❌ 信号获取失败: '+err.message, 'error');
@@ -1585,6 +1740,7 @@ async function loadHistory() {
   try {
     const data = await apiGet('/api/history?symbol='+encodeURIComponent(sym)+'&limit='+limit);
     renderHistory(data.history||data.records||[]);
+    updateStats();
   } catch (err) {
     renderError('#histResult', err.message);
   }
@@ -1616,18 +1772,44 @@ async function loadReview() {
   const sym = document.getElementById('histSymbol').value.trim();
   try {
     const data = await apiGet('/api/review?symbol='+encodeURIComponent(sym));
-    const rv = data.stats||data||{};
+    // Support multiple response shapes
+    let rv = {};
+    if (data && typeof data === 'object') {
+      rv = data.stats || data.data || data;
+    }
+    // If stats are flat on top level or nested
+    let buyCount = rv.buy_count || rv.buyCount || (rv.actions && rv.actions.buy) || 0;
+    let sellCount = rv.sell_count || rv.sellCount || (rv.actions && rv.actions.sell) || 0;
+    let holdCount = rv.hold_count || rv.holdCount || (rv.actions && rv.actions.hold) || 0;
+    
+    // Fallback: compute from history records
+    if (!buyCount && !sellCount) {
+      try {
+        const hData = await apiGet('/api/history?symbol='+encodeURIComponent(sym)+'&limit=1000');
+        const recs = hData.history || hData.records || [];
+        let b = 0, s = 0, h = 0;
+        recs.forEach(function(r) {
+          let a = String(r.action||'').toLowerCase();
+          if (a.indexOf('buy')>=0) b++;
+          else if (a.indexOf('sell')>=0) s++;
+          else h++;
+        });
+        if (b || s) { buyCount = b; sellCount = s; holdCount = h; }
+      } catch(e) {}
+    }
+    
     document.querySelector('#histResult').innerHTML += `
       <div class="card" style="margin-top:14px">
         <div class="card-header"><h3>📊 审查统计</h3></div>
         <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
-          <div class="stat-card"><div class="stat-title">买入次数</div><div class="stat-value" style="color:#10B981">${rv.buy_count||0}</div></div>
-          <div class="stat-card"><div class="stat-title">卖出次数</div><div class="stat-value" style="color:#EF4444">${rv.sell_count||0}</div></div>
-          <div class="stat-card"><div class="stat-title">持仓次数</div><div class="stat-value">${rv.hold_count||0}</div></div>
+          <div class="stat-card"><div class="stat-title">买入次数</div><div class="stat-value" style="color:#10B981">${buyCount}</div></div>
+          <div class="stat-card"><div class="stat-title">卖出次数</div><div class="stat-value" style="color:#EF4444">${sellCount}</div></div>
+          <div class="stat-card"><div class="stat-title">持仓次数</div><div class="stat-value">${holdCount}</div></div>
         </div>
       </div>`;
+    updateStats();
   } catch (err) {
-    addMsg('审查加载失败: '+err.message, 'error');
+    addMsg('审查加载失败: '+err.message, 'alphalith');
   }
 }
 
@@ -1636,66 +1818,91 @@ async function loadReview() {
 // ============================================================
 async function runCompare() {
   const raw = document.getElementById('cmpSymbols').value.trim();
-  if (!raw) { addMsg('请输入对比标的', 'system'); return; }
+  if (!raw) { addMsg('请输入对比标的', 'alphalith'); return; }
   const symbols = raw.split(/[\s,，]+/).filter(Boolean);
-  if (symbols.length<2) { addMsg('至少输入2个标的', 'system'); return; }
-  const strategy = document.getElementById('cmpStrategy').value;
+  if (symbols.length<2) { addMsg('至少输入2个标的', 'alphalith'); return; }
+  const sel = document.getElementById('cmpStrategy');
+  const strategies = Array.from(sel.selectedOptions).map(o => o.value);
+  if (!strategies.length) { addMsg('请选择至少一个策略', 'alphalith'); return; }
   const days = parseInt(document.getElementById('cmpDays').value)||180;
-  await doCompare(symbols, strategy, days);
+  const cnt = symbols.length * strategies.length;
+  addMsg('🔄 对比分析: '+symbols.length+' 标的 × '+strategies.length+' 策略 = '+cnt+' 次', 'alphalith');
+  await doCompare(symbols, strategies, days);
 }
 
 async function handleCompareReq(text) {
   const parts = text.replace(/\/compare\s*/i,'').trim().split(/[\s,，]+/).filter(Boolean);
-  if (parts.length<2) { addMsg('格式: /compare 标的A 标的B', 'system'); return; }
+  if (parts.length<2) { addMsg('格式: /compare 标的A 标的B', 'alphalith'); return; }
   document.getElementById('cmpSymbols').value = parts.join(' ');
   switchPage('compare');
   await doCompare(parts, document.getElementById('cmpStrategy').value, parseInt(document.getElementById('cmpDays').value)||180);
 }
 
-async function doCompare(symbols, strategy, days) {
+async function doCompare(symbols, strategies, days) {
   const tid = 'typing-cmp-'+Date.now();
   addTyping(tid);
+  const allResults = [];
   try {
-    const data = await api('/api/compare', { symbols: symbols.slice(0,5), strategy, days, horizon:10 });
+    for (const sym of symbols.slice(0, 5)) {
+      for (const strat of strategies) {
+        try {
+          const data = await api('/api/backtest', { symbol: sym, strategy: strat, period_days: days, horizon: 10 });
+          allResults.push({ symbol: sym, strategy: strat, success: true, data });
+        } catch (err) {
+          allResults.push({ symbol: sym, strategy: strat, success: false, error: err.message });
+        }
+      }
+    }
     rmTyping(tid);
-    renderCompare(data);
-    addMsg('✅ 对比分析完成', 'assistant');
+    renderCompare(allResults);
+    const ok = allResults.filter(r => r.success).length;
+    addMsg('✅ 对比分析完成: '+ok+'/'+allResults.length, 'assistant');
   } catch (err) {
     rmTyping(tid);
     addMsg('❌ 对比失败: '+err.message, 'error');
   }
 }
 
-function renderCompare(data) {
-  const results = data.results || [];
-  const rows = results.map(r => {
-    if (r.error) return `<tr><td><strong>${r.symbol}</strong></td><td colspan="4" style="color:#EF4444">${r.error}</td></tr>`;
-    const m = r.metrics || {};
+function renderCompare(results) {
+  const arr = Array.isArray(results) ? results : [];
+  const rows = arr.map(r => {
+    const label = (STRATEGY_LABELS[r.strategy]||r.strategy||'') + ' ';
+    if (!r.success) return `<tr><td><strong>${r.symbol}</strong></td><td>${label}</td><td colspan="4" style="color:#EF4444">${r.error||'失败'}</td></tr>`;
+    const d = r.data || {};
+    // Backend to_dict() returns FLAT fields (no .metrics wrapper)
+    const trp = d.total_pnl||0; const sr = d.sharpe||0; const mdd = Math.abs(d.max_drawdown||0)*100; const wr = (d.win_rate||0)*100;
     return `<tr>
       <td><strong>${r.symbol}</strong></td>
-      <td class="${(m.total_return_pct||0)>=0?'price-up':'price-down'}">${(m.total_return_pct||0).toFixed(2)}%</td>
-      <td>${(m.sharpe_ratio||0).toFixed(2)}</td>
-      <td>${(m.max_drawdown_pct||0).toFixed(2)}%</td>
-      <td>${(m.win_rate_pct||0).toFixed(1)}%</td>
+      <td style="font-size:11px">${label}</td>
+      <td class="${trp>=0?'price-up':'price-down'}">${trp.toFixed(2)}%</td>
+      <td>${sr.toFixed(2)}</td>
+      <td>${mdd.toFixed(2)}%</td>
+      <td>${wr.toFixed(1)}%</td>
     </tr>`;
   }).join('');
 
   document.querySelector('#cmpResult').innerHTML = `
     <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><h3>⚖️ 回测对比</h3></div>
-      <table class="data-table"><thead><tr><th>标的</th><th>总收益</th><th>Sharpe</th><th>最大回撤</th><th>胜率</th></tr></thead><tbody>${rows}</tbody></table>
-    </div>
-    ${data.llm_review?`<div class="card"><div class="card-body" style="color:rgba(255,255,255,0.55);line-height:1.7;font-size:13px">${data.llm_review}</div></div>`:''}`;
+      <div class="card-header"><h3>⚖️ 回测对比 (${arr.length} 项)</h3></div>
+      <table class="data-table"><thead><tr><th>标的</th><th>策略</th><th>总收益</th><th>Sharpe</th><th>最大回撤</th><th>胜率</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
 
-  // Render equity charts for comparison
+  // Render equity charts for valid results
   const chartGrid = document.getElementById('cmpCharts');
-  const valid = results.filter(r => !r.error && r.equity_curve && r.equity_curve.length);
-  chartGrid.innerHTML = valid.map((r,i) => `
-    <div class="card">
-      <div class="card-header"><h3>${r.symbol} 净值曲线</h3></div>
-      <div class="card-body"><div class="chart-box" id="cmpChart${i}"></div></div>
-    </div>`).join('');
-  valid.forEach((r,i) => renderEChart('cmpChart'+i, r.equity_curve, r.symbol+' 净值'));
+  const valid = arr.filter(r => r.success && r.data && (r.data.bar_closes || r.data.equity_curve) && (r.data.bar_closes || r.data.equity_curve).length);
+  if (valid.length) {
+    chartGrid.innerHTML = valid.map((r,i) => `
+      <div class="card">
+        <div class="card-header"><h3>${r.symbol} — ${STRATEGY_LABELS[r.strategy]||r.strategy}</h3></div>
+        <div class="card-body"><div class="chart-box" id="cmpChart${i}"></div></div>
+      </div>`).join('');
+    valid.forEach((r,i) => {
+      const eq = r.data.bar_closes ? r.data.bar_closes.map((c,j)=>({x:j,y:c})) : (r.data.equity_curve||[]);
+      renderEChart('cmpChart'+i, eq, r.symbol+' 净值');
+    });
+  } else {
+    chartGrid.innerHTML = '';
+  }
 }
 
 // ============================================================
@@ -1793,7 +2000,28 @@ async function updateBadges() {
     const badge = document.getElementById('histBadge');
     if (badge) { badge.textContent=total; badge.style.display=total?'':'none'; }
   } catch(e) {}
+  updateStats();
 }
+function updateStats() {
+  try {
+    fetch('/api/history?limit=100').then(r => r.json()).then(data => {
+      const records = data.history || data.records || [];
+      const count = records.length;
+      let bulls = 0, bears = 0;
+      records.forEach(r => {
+        const action = String((r.action || '') || '').toLowerCase();
+        if (action.includes('buy')) bulls++;
+        else if (action.includes('sell')) bears++;
+      });
+      const elC = document.getElementById('statCount'); if(elC) elC.textContent=count||'-';
+      const elB = document.getElementById('statBull'); if(elB) elB.textContent=bulls||'-';
+      const eBr = document.getElementById('statBear'); if(eBr) eBr.textContent=bears||'-';
+      const elH = document.getElementById('statHist'); if(elH) elH.textContent=data.total||count||'-';
+    }).catch(() => {});
+  } catch(e) {}
+}
+
+
 
 // ============================================================
 // THEME (dark / light toggle)
@@ -1952,7 +2180,7 @@ async function submitAuth(ev) {
 
     // Welcome message in chat
     if (typeof addMsg === 'function') {
-      addMsg('system', `欢迎，${data.display_name}！`);
+      addMsg('alphalith', `欢迎，${data.display_name}！`);
     }
   } catch (e) {
     showAuthError('网络错误：' + e.message);
@@ -1972,7 +2200,7 @@ async function checkAuth() {
       renderUserUI();
       // 如果当前登录的就是默认管理员，提示改密码
       if (data.is_default && typeof addMsg === 'function') {
-        setTimeout(() => addMsg('system', '⚠️ 你正在使用默认管理员账号（admin/alphalith），建议尽快在「系统配置」中修改密码或注册新账号。'), 500);
+        setTimeout(() => addMsg('alphalith', '⚠️ 你正在使用默认管理员账号（admin/alphalith），建议尽快在「系统配置」中修改密码或注册新账号。'), 500);
       }
       return true;
     } else {

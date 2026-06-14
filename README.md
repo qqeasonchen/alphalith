@@ -2,13 +2,13 @@
 
 > **项目名来源**: *Alphalith* = **Alpha**（超额收益）+ **Lith**（古希腊语 λίθος，"立石/ bedrock"）→ "封存于立石的 Alpha 决策"，与文末铭文 *Sealed in the Bedrock* 呼应。中文名"慧投"= 慧眼投研。
 >
-> **The Bedrock of AI-Driven Alpha** · AI 慧眼，洞察先机
+> **The Bedrock of AI-Driven Alpha** · AI 慧眼，洞察先机 · v0.2.1
 >
 > 一个轻量、零外部依赖的多智能体 AI 投研引擎，原生支持 **A 股 / 港股 / 美股**。
 
 ```bash
 pip install -e .
-export DEEPSEEK_API_KEY=sk-...
+export DEEPSEEK_API_KEY=your-deepseek-key
 alphalith analyze 茅台
 ```
 
@@ -50,7 +50,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 
 # 2. （可选）接 LLM。不接也能跑，走 StubLLM 兜底
-export DEEPSEEK_API_KEY=sk-xxxxx
+export DEEPSEEK_API_KEY=your-deepseek-key
 
 # 3. 三市场任选
 alphalith analyze 茅台              # 中文名→A 股
