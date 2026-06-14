@@ -164,6 +164,9 @@ DEFAULT_CONFIG = {
     "base_url": "https://api.deepseek.com/v1",
     "api_key_env": "DEEPSEEK_API_KEY",
     "temperature": 0.7,
+    "data_source": "auto",
+    "data_source_order": ["sina", "eastmoney", "tencent", "akshare", "yfinance"],
+    "custom_sources": {},
     "providers": {
         "deepseek": {
             "name": "DeepSeek 官方",

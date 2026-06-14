@@ -336,38 +336,38 @@ a { color:inherit; text-decoration:none; }
 /* Chat Area */
 .chat-area {
   flex-shrink:0; border-top:1px solid var(--border-header); background:var(--bg-header);
-  padding:6px 14px 8px;
+  padding:4px 10px 6px;
 }
-.chat-messages { max-height:100px; overflow-y:auto; margin-bottom:6px; display:none; }
+.chat-messages { max-height:80px; overflow-y:auto; margin-bottom:4px; display:none; font-size:12px; }
 .chat-messages.show { display:block; }
-.msg { padding:6px 0; font-size:13px; line-height:1.5; }
+.msg { padding:4px 0; font-size:12px; line-height:1.4; }
 .msg-user { color:var(--text-primary); font-weight:550; }
 .msg-assistant { color:var(--text-secondary); }
-.msg-alphalith { color:var(--text-tertiary); font-style:italic; font-size:12px; }
+.msg-alphalith { color:var(--text-tertiary); font-style:italic; font-size:11px; }
 .msg-error { color:var(--red); }
 
 .input-box {
   background:var(--bg-input); border:1px solid var(--border-default);
-  border-radius:8px; padding:6px 10px; transition:border-color .2s;
+  border-radius:6px; padding:4px 8px; transition:border-color .2s;
 }
 .input-box:focus-within { border-color:var(--accent); }
 .input-textarea {
-  width:100%; min-height:24px; max-height:60px; border:none; resize:none;
-  background:none; font-size:12px; line-height:1.4; color:var(--text-primary);
-  font-family:inherit; outline:none; padding:2px 0;
+  width:100%; min-height:20px; max-height:44px; border:none; resize:none;
+  background:none; font-size:11px; line-height:1.4; color:var(--text-primary);
+  font-family:inherit; outline:none; padding:1px 0;
 }
 .input-textarea::placeholder { color:var(--text-placeholder); }
 .symbol-valid { border-color:#10B981 !important; }
 .symbol-invalid { border-color:#EF4444 !important; }
-.symbol-status { font-size:10px; margin-left:4px; white-space:nowrap; }
+.symbol-status { font-size:9px; margin-left:4px; white-space:nowrap; }
 .symbol-status.ok { color:#10B981; }
 .symbol-status.err { color:#EF4444; }
-.format-hint { font-size:10px; color:var(--text-secondary); margin-left:4px; white-space:nowrap; opacity:0.75; }
+.format-hint { font-size:9px; color:var(--text-secondary); margin-left:4px; white-space:nowrap; opacity:0.75; }
 @media (max-width:900px) { .format-hint { display:none; } }
 
 .input-toolbar {
   display:flex; align-items:center; justify-content:space-between;
-  margin-top:6px; padding-top:6px; border-top:1px solid var(--border-lighter);
+  margin-top:4px; padding-top:4px; border-top:1px solid var(--border-lighter);
 }
 .toolbar-left { display:flex; align-items:center; gap:4px; }
 .toolbar-right { display:flex; align-items:center; gap:4px; }
@@ -380,17 +380,17 @@ a { color:inherit; text-decoration:none; }
 .tb-btn:hover { background:var(--bg-hover); color:var(--text-secondary); }
 .tb-divider { width:1px; height:16px; background:var(--border-default); margin:0 3px; }
 .send-btn {
-  width:30px; height:30px; border-radius:50%;
+  width:26px; height:26px; border-radius:50%;
   border:none; background:linear-gradient(135deg,var(--accent),var(--accent-end)); color:#fff;
   cursor:pointer; display:flex; align-items:center; justify-content:center;
-  transition:all .2s; font-size:14px;
+  transition:all .2s; font-size:12px;
 }
 .send-btn:hover { opacity:.85; transform:scale(1.05); }
 .send-btn:disabled { opacity:.3; cursor:not-allowed; transform:none; }
 
 .input-footer {
   display:flex; align-items:center; justify-content:space-between;
-  margin-top:6px; font-size:10px; color:var(--text-disabled);
+  margin-top:4px; font-size:9px; color:var(--text-disabled);
 }
 
 /* Loading */
@@ -856,20 +856,15 @@ a { color:inherit; text-decoration:none; }
     <label>标的列表</label>
     <input type="text" class="action-input" id="cmpSymbols" placeholder="用空格分隔：600519 000001 / 腾讯 阿里" style="width:260px" onblur="validateSymbol(this, document.getElementById('cmpSymbolsStatus'))">
     <span id="cmpSymbolsStatus" class="symbol-status"></span>
-    <label>策略</label>
-    <select class="action-select" id="cmpStrategy" multiple style="height:auto;min-height:36px">
-      <option value="ma_cross" selected>MA 均线交叉</option>
-      <option value="momentum" selected>动量策略</option>
-      <option value="reversal">反转策略</option>
-      <option value="bollinger">布林带突破</option>
-      <option value="rsi">RSI 超买超卖</option>
-      <option value="macd">MACD</option>
-      <option value="llm">LLM 智能</option>
-    </select>
-    <span style="font-size:11px;color:var(--text-tertiary)">Ctrl/Cmd+Click 多选</span>
     <label>周期</label>
     <input type="number" class="action-input" id="cmpDays" value="180" style="width:80px">
     <button class="btn-primary" onclick="runCompare()">▶ 对比分析</button>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-header"><h3>策略组合（可多选）</h3>
+      <span style="font-size:11px;color:var(--text-tertiary)">勾选 2 个及以上将多标的 × 多策略并行回测对比</span>
+    </div>
+    <div class="card-body" id="cmpStrategyBox" style="display:flex;flex-wrap:wrap;gap:14px"></div>
   </div>
   <div class="charts-grid-2col" id="cmpCharts"></div>
   <div class="result-area" id="cmpResult"></div>
@@ -926,6 +921,41 @@ a { color:inherit; text-decoration:none; }
         </div>
       </div>
       <div class="setting-group">
+        <div class="setting-group-title">📡 数据源</div>
+        <div class="setting-row">
+          <div><div class="setting-label">行情数据源</div><div class="setting-desc">选择优先使用的行情数据供应商</div></div>
+          <div class="setting-control">
+            <select class="setting-input" id="setDataSource" style="cursor:pointer;max-width:360px">
+              <option value="auto">🤖 自动 — 依次降级尝试</option>
+              <option value="sina">📡 新浪财经 — hq.sinajs.cn（免费、稳定）</option>
+              <option value="eastmoney">📊 东方财富 — push2.eastmoney.com（A股专精）</option>
+              <option value="tencent">🐧 腾讯财经 — qt.gtimg.cn（基本面丰富）</option>
+              <option value="akshare">📈 AKShare — 开源金融库（A/HK 专精）</option>
+              <option value="yfinance">🌍 Yahoo Finance — 美股覆盖最全</option>
+            </select>
+            <div style="font-size:10px;color:var(--text-secondary);margin-top:4px">
+              💡 新浪免费覆盖 A/HK/US 实时行情；东财侧重 A 股深度；腾讯侧重基本面；AKShare 需 pip install akshare；yfinance 需 pip install yfinance
+            </div></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">数据源降级顺序</div><div class="setting-desc">优先顺序：靠前的数据源优先使用（逗号分隔代码）</div></div>
+          <div class="setting-control"><input class="setting-input" id="setDataOrder" placeholder="sina, eastmoney, tencent, akshare, yfinance" style="max-width:420px"></div>
+        </div>
+        <!-- 自定义数据源 -->
+        <div class="setting-row" style="border-top:1px dashed var(--border);padding-top:14px;margin-top:4px">
+          <div><div class="setting-label">自定义数据源</div><div class="setting-desc">添加第三方或自建行情 API（代码、名称、URL）</div></div>
+          <div class="setting-control" style="flex:1">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+              <input class="setting-input" id="custSrcCode" placeholder="代码 (例: myapi)" style="width:100px">
+              <input class="setting-input" id="custSrcName" placeholder="名称 (例: 我的API)" style="width:140px">
+              <input class="setting-input" id="custSrcUrl" placeholder="API URL (例: https://api.example.com/quote)" style="width:240px">
+              <button class="action-btn" onclick="addCustomSource()" style="padding:5px 10px;font-size:11px;white-space:nowrap">➕ 添加</button>
+            </div>
+            <div id="custSrcList" style="font-size:11px;color:var(--text-secondary);margin-top:4px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="setting-group">
         <div class="setting-group-title">回测默认参数</div>
         <div class="setting-row">
           <div><div class="setting-label">默认回测天数</div></div>
@@ -951,12 +981,6 @@ a { color:inherit; text-decoration:none; }
           placeholder="今天想做什么？输入标的代码或 /命令，例如：分析腾讯、/backtest 寒武纪 动量 180"
           rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
         <div class="input-toolbar">
-          <div class="toolbar-left">
-            <button class="tb-btn" id="modeBtn" onclick="cycleMode()">✨ Craft</button>
-            <button class="tb-btn" id="depthBtn" onclick="cycleDepth()">Auto ▾</button>
-            <div class="tb-divider"></div>
-            <button class="tb-btn" onclick="clearChat()" title="清空对话">🗑️</button>
-          </div>
           <div class="toolbar-right">
             <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
           </div>
@@ -1457,6 +1481,7 @@ async function runDashboard() {
   const raw = document.getElementById('dashSymbols').value.trim();
   if (!raw) { addMsg('请输入标的', 'alphalith'); return; }
   const symbols = raw.split(/[\s,，]+/).filter(Boolean).slice(0, 10);
+  addMsg('🚀 正在生成投研面板（标的: '+symbols+'）', 'alphalith');
   showProgress('dashboardResult', 20, '正在生成投研面板...');
   try {
     const data = await api('/api/dashboard', { symbols });
@@ -1537,6 +1562,24 @@ function renderBtStrategyBox() {
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;border-radius:6px;background:var(--bg-hover);font-size:13px;min-width:110px">
       <input type="checkbox" class="bt-strategy-cb" value="${k}" style="cursor:pointer"> ${escHtml(v)}
     </label>`).join('');
+}
+
+function renderCmpStrategyBox() {
+  const box = document.getElementById('cmpStrategyBox');
+  if (!box) return;
+  box.innerHTML = Object.entries(STRATEGY_LABELS).map(([k,v])=>`
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;border-radius:6px;background:var(--bg-hover);font-size:13px;min-width:110px">
+      <input type="checkbox" class="cmp-strategy-cb" value="${k}" style="cursor:pointer"> ${escHtml(v)}
+    </label>`).join('');
+  // 默认勾选前 3 个（ma_cross, momentum, reversal）
+  ['ma_cross','momentum','reversal'].forEach(function(v) {
+    var cb = document.querySelector('.cmp-strategy-cb[value="'+v+'"]');
+    if (cb) cb.checked = true;
+  });
+}
+
+function getSelectedCmpStrategies() {
+  return Array.from(document.querySelectorAll('.cmp-strategy-cb:checked')).map(cb=>cb.value);
 }
 
 function getSelectedStrategies() {
@@ -1770,12 +1813,16 @@ function renderHistory(records) {
     document.querySelector('#histResult').innerHTML = '<div class="empty-state"><p>暂无历史记录</p></div>';
     return;
   }
-  const rows = arr.map((r,i) => `
-    <tr>
-      <td>${i+1}</td><td>${r.symbol||'-'}</td><td>${String(r.date||r.timestamp||'').slice(0,16)}</td>
+  const rows = arr.map((r,i) => {
+    const ts = (r.ts||r.timestamp||'');
+    const timeStr = ts ? ts.slice(0,16) : '-';
+    const reason = (r.notes||r.reasoning||'-');
+    return `<tr>
+      <td>${i+1}</td><td>${r.symbol||'-'}</td><td>${timeStr}</td>
       <td><span class="tag tag-${r.action==='buy'?'green':r.action==='sell'?'red':'amber'}">${r.action||'-'}</span></td>
-      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.reasoning||r.notes||'-'}</td>
-    </tr>`).join('');
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${reason}</td>
+    </tr>`;
+  }).join('');
   document.querySelector('#histResult').innerHTML = `
     <div class="card">
       <table class="data-table"><thead><tr><th>#</th><th>标的</th><th>时间</th><th>操作</th><th>理由</th></tr></thead><tbody>${rows}</tbody></table>
@@ -1835,12 +1882,12 @@ async function runCompare() {
   if (!raw) { addMsg('请输入对比标的', 'alphalith'); return; }
   const symbols = raw.split(/[\s,，]+/).filter(Boolean);
   if (symbols.length<2) { addMsg('至少输入2个标的', 'alphalith'); return; }
-  const sel = document.getElementById('cmpStrategy');
-  const strategies = Array.from(sel.selectedOptions).map(o => o.value);
+  const strategies = getSelectedCmpStrategies();
   if (!strategies.length) { addMsg('请选择至少一个策略', 'alphalith'); return; }
   const days = parseInt(document.getElementById('cmpDays').value)||180;
   const cnt = symbols.length * strategies.length;
-  addMsg('🔄 对比分析: '+symbols.length+' 标的 × '+strategies.length+' 策略 = '+cnt+' 次', 'alphalith');
+  addMsg('🚀 开始对比分析（'+symbols.length+'标的 × '+strategies.length+'策略）', 'alphalith');
+    addMsg('🔄 对比分析: '+symbols.length+' 标的 × '+strategies.length+' 策略 = '+cnt+' 次', 'alphalith');
   await doCompare(symbols, strategies, days);
 }
 
@@ -1849,7 +1896,7 @@ async function handleCompareReq(text) {
   if (parts.length<2) { addMsg('格式: /compare 标的A 标的B', 'alphalith'); return; }
   document.getElementById('cmpSymbols').value = parts.join(' ');
   switchPage('compare');
-  await doCompare(parts, document.getElementById('cmpStrategy').value, parseInt(document.getElementById('cmpDays').value)||180);
+  await doCompare(parts, getSelectedCmpStrategies(), parseInt(document.getElementById('cmpDays').value)||180);
 }
 
 async function doCompare(symbols, strategies, days) {
@@ -2028,6 +2075,9 @@ async function saveSettings() {
       base_url: document.getElementById('setApiBase').value.trim(),
       api_key: document.getElementById('setApiKey').value.trim(),
       api_key_env: document.getElementById('setApiKeyDesc').textContent.replace('环境变量: ', ''),
+      data_source: document.getElementById('setDataSource').value,
+      data_source_order: document.getElementById('setDataOrder').value.trim().split(/[,，\s]+/).filter(Boolean),
+      custom_sources: _customSources,
     };
     
     await api('/api/config', config);
@@ -2072,7 +2122,90 @@ async function loadSettings() {
     
     if (cfg.base_url) document.getElementById('setApiBase').value = cfg.base_url;
     if (cfg.api_key)   document.getElementById('setApiKey').value = cfg.api_key || '';
+    if (cfg.data_source) document.getElementById('setDataSource').value = cfg.data_source;
+    if (cfg.data_source_order) document.getElementById('setDataOrder').value = cfg.data_source_order.join(', ');
+    
+    // 恢复自定义数据源
+    _customSources = cfg.custom_sources || {};
+    refreshSourceDropdown();
+    renderCustomSources();
   } catch (e) { /* ignore */ }
+}
+
+// ============================================================
+// 自定义数据源管理
+// ============================================================
+var _customSources = {};  // { code: {name, url} }
+
+function refreshSourceDropdown() {
+  var sel = document.getElementById('setDataSource');
+  if (!sel) return;
+  // 清除旧的自定义选项
+  var opts = sel.querySelectorAll('[data-custom]');
+  opts.forEach(function(o) { o.remove(); });
+  // 添加当前自定义源
+  Object.keys(_customSources).forEach(function(code) {
+    var s = _customSources[code];
+    if (!s) return;
+    var o = document.createElement('option');
+    o.value = code;
+    o.textContent = '🔧 ' + (s.name || code) + ' — ' + (s.url || '');
+    o.setAttribute('data-custom', '1');
+    sel.appendChild(o);
+  });
+  
+  // 更新降级顺序 placeholder
+  var allCodes = ['sina','eastmoney','tencent','akshare','yfinance'].concat(Object.keys(_customSources));
+  var doInput = document.getElementById('setDataOrder');
+  if (doInput) doInput.placeholder = allCodes.join(', ');
+}
+
+function addCustomSource() {
+  var code = document.getElementById('custSrcCode').value.trim();
+  var name = document.getElementById('custSrcName').value.trim();
+  var url = document.getElementById('custSrcUrl').value.trim();
+  if (!code || !name || !url) {
+    alert('代码、名称、API URL 均不能为空');
+    return;
+  }
+  if (['auto','sina','eastmoney','tencent','akshare','yfinance'].indexOf(code) >= 0) {
+    alert('代码 "' + code + '" 已被内置数据源占用，请换一个');
+    return;
+  }
+  _customSources[code] = { name: name, url: url };
+  document.getElementById('custSrcCode').value = '';
+  document.getElementById('custSrcName').value = '';
+  document.getElementById('custSrcUrl').value = '';
+  refreshSourceDropdown();
+  renderCustomSources();
+  addMsg('✅ 已添加自定义数据源: ' + name + ' (' + code + ')', 'alphalith');
+}
+
+function removeCustomSource(code) {
+  if (!confirm('确认删除自定义数据源 "' + code + '" 吗？')) return;
+  delete _customSources[code];
+  // 如果主数据源选了这个，切回 auto
+  var sel = document.getElementById('setDataSource');
+  if (sel && sel.value === code) sel.value = 'auto';
+  refreshSourceDropdown();
+  renderCustomSources();
+}
+
+function renderCustomSources() {
+  var container = document.getElementById('custSrcList');
+  if (!container) return;
+  var keys = Object.keys(_customSources);
+  if (!keys.length) {
+    container.innerHTML = '<span style="color:var(--text-muted)">暂无自定义数据源，在上方输入并添加</span>';
+    return;
+  }
+  container.innerHTML = keys.map(function(code) {
+    var s = _customSources[code];
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;margin:3px 0;background:var(--bg-raised);border-radius:4px">' +
+      '<span><b>' + (s.name || '') + '</b> <code style="font-size:10px">' + code + '</code> — <span style="font-size:10px;color:var(--text-secondary)">' + (s.url || '') + '</span></span>' +
+      '<span onclick="removeCustomSource(\'' + code + '\')" style="cursor:pointer;color:var(--danger);font-size:14px;padding:0 4px" title="删除">✕</span>' +
+      '</div>';
+  }).join('');
 }
 
 // ============================================================
@@ -2442,6 +2575,7 @@ function closeAccountMenu() {
 
   // Populate strategy checkboxes
   renderBtStrategyBox();
+  renderCmpStrategyBox();
 
   // Auth wiring
   document.getElementById('tabLogin').addEventListener('click', () => showAuthModal('login'));

@@ -89,14 +89,14 @@ def history(symbol: Optional[str] = None, limit: int = 20) -> list[dict]:
             if symbol:
                 cur.execute(
                     "SELECT id, ts, symbol, market, action, confidence, entry_price, "
-                    "shares, llm, data_source, llm_total_tokens "
+                    "shares, llm, data_source, llm_total_tokens, notes "
                     "FROM decisions WHERE symbol=? ORDER BY ts DESC LIMIT ?",
                     (symbol, limit),
                 )
             else:
                 cur.execute(
                     "SELECT id, ts, symbol, market, action, confidence, entry_price, "
-                    "shares, llm, data_source, llm_total_tokens "
+                    "shares, llm, data_source, llm_total_tokens, notes "
                     "FROM decisions ORDER BY ts DESC LIMIT ?",
                     (limit,),
                 )
