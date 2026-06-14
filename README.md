@@ -6,77 +6,78 @@
 >
 > 一个轻量、零外部依赖的多智能体 AI 投研引擎，原生支持 **A 股 / 港股 / 美股**。
 
-```bash
-pip install -e .
-export DEEPSEEK_API_KEY=your-deepseek-key
-alphalith analyze 茅台
-```
-
-15 秒一份带真实行情、真实基本面、真实新闻、真实 LLM 推理的投研报告。
-
 ---
 
 ## ✨ 核心特性
 
 - **零外部依赖**：仅 Python 3.10+ 标准库即可运行（`dependencies = []`）。`pip install` 几秒搞定。
-- **三市场原生支持**：
-  - 🇨🇳 A 股：T+1 / 涨跌停 / 印花税 / 100 股每手
-  - 🇭🇰 港股：每手字典 / 印花税 0.1% / CCASS 费 / 盘前盘后
-  - 🇺🇸 美股：T+1 资金交收 / SEC + FINRA 费 / 1 股起买 / 盘前盘后
-- **4 智能体投研委员会**：技术 / 基本面 / 新闻 / 情绪 + 多空辩论 + 风控复核。
-- **真实数据闭环**：
-  - 行情：新浪 `hq.sinajs.cn`（A/HK/US 全覆盖）
-  - 基本面：腾讯 `qt.gtimg.cn`（PE / PB / ROE / 市值）
-  - 新闻：东财 `search-api`（5 条/标的实时头条）
-- **LLM 智能降级链**：DeepSeek → Qwen → Claude → Ollama → StubLLM（无 key 也能跑）。
-- **结构化输出**：JSON 解析 + 正则降级，token 消耗下降 ~3%。
-- **Token 透明化**：每次决策报告底部展示真实 in/out token 数，支持账单对账。
-- **决策日志**：SQLite 自动落库（`~/.alphalith/journal.db`），可历史回溯与复盘。
-- **多策略回测**：均线 / MACD / RSI / 布林带 / 动量突破 / 均值反转 六种决策器，历史 K 线滚动评估。
-- **完整风险指标**：胜率、累计收益、最大回撤、夏普、Calmar、Sortino、信息比率、盈亏比、最长连胜/连败。
-- **HTML 可视化**：Chart.js 价格图 + 买卖点标注 + 资金曲线对比 + buy & hold 基准。
-- **双策略对比**：`--compare` 一键并排对比 + 决策分歧高亮 + 双策略交易明细 + LLM 综合评语。
-- **Dashboard 面板**：`alphalith dashboard` 一键生成自包含 HTML，含行情卡片、策略信号矩阵、回测热力图、决策时间线。
-- **ADP v1.0 协议**：决策对象遵循"AI 投研决策开放标准"，可直接 webhook / 跨系统传递。
+- **三市场原生支持**：🇨🇳 A 股 / 🇭🇰 港股 / 🇺🇸 美股，各市场交易规则完整覆盖（T+1/涨跌停/印花税/每手单位）。
+- **4 智能体投研委员会**：技术 / 基本面 / 新闻 / 情绪分析师 + 多空辩论 + 风控复核。
+- **真实数据闭环**：行情（新浪 hq.sinajs.cn）、基本面（腾讯 qt.gtimg.cn）、新闻（东财 search-api）。
+- **多策略回测引擎**：7 种策略（MA/MACD/RSI/布林带/动量/反转/LLM），14 项风险指标，双策略对比。
+- **决策日志**：SQLite 自动落库，支持历史回溯与复盘。
+- **ADP v1.0 协议**：决策对象标准化，可 webhook / 跨系统传递。
 
 ---
 
-## 🚀 30 秒上手
+## 🖥️ GUI 投研工作台
+
+零外部依赖，单文件 HTML + Python 内置 HTTP 服务，一键启动：
 
 ```bash
-# 1. 安装
-git clone <repo> alphalith && cd alphalith
-python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
-
-# 2. （可选）接 LLM。不接也能跑，走 StubLLM 兜底
-export DEEPSEEK_API_KEY=your-deepseek-key
-
-# 3. 三市场任选
-alphalith analyze 茅台              # 中文名→A 股
-alphalith analyze 600519.SS
-alphalith analyze 0700.HK           # 港股
-alphalith analyze NVDA              # 美股
-alphalith analyze NVDA --depth deep  # 多轮辩论
-
-# 4. 批量分析（命令行多参数，单个失败不阻塞后续）
-alphalith analyze-batch 600519 0700.HK NVDA --depth quick
-
-# 5. 历史回测（拉真实日 K 线，滚动模拟简化策略）
-alphalith backtest 600519 --days 90 --horizon 5
-alphalith backtest 600519 --days 30 --strategy llm   # LLM 决策器
-alphalith backtest 600519 --strategy rsi              # MACD/RSI/布林策略
-alphalith backtest 600519 --html report.html          # 输出 HTML 可视化
-alphalith backtest 600519 --compare rsi --html cmp.html  # 双策略对比
-alphalith backtest 600519 --compare llm --html cmp.html   # 技术 vs LLM
-
-# 6. 复盘
-alphalith history --limit 20
-alphalith review
-
-# 7. Dashboard 面板（生成自包含 HTML）
-alphalith dashboard --symbols 600519,0700.HK,NVDA --output dashboard.html
+alphalith gui                    # 默认 8888 端口
+alphalith gui --port 3000        # 自定义端口
+alphalith gui --no-browser       # 仅启动服务
 ```
+
+打开浏览器即用，无需任何前端构建工具。
+
+### 七大功能页面
+
+| 页面 | 功能亮点 |
+|---|---|
+| 🏠 **投研分析** | SSE 流式实时辩论（4 分析师 + 多空辩论），进度条追踪分析阶段，ECharts 图表 + 决策卡片 |
+| 📈 **策略回测** | 7 策略多选并行回测，14 项风险指标（Sharpe/Sortino/Calmar/信息比率），收益曲线 + 交易明细 |
+| 📊 **投研面板** | 一键 Dashboard（行情卡片 + 信号矩阵 + 回测热力图 + 决策时间线），iframe 内嵌展示 |
+| 🎯 **信号面板** | 多标的 × 多策略信号汇总（LONG/SHORT/NEUTRAL），批量输入 |
+| 📦 **批量分析** | 空格分隔多标的，串行执行 + 实时进度 |
+| 📋 **决策历史** | 按标的筛选 + 未读计数 badge，默认加载全部最近记录 |
+| 📐 **审查统计** | 买入/卖出/持仓次数 + 胜率 + 平均置信度 |
+
+### 界面特性
+
+- 🌓 **暗黑 / 浅色主题**（CSS 变量驱动，ECharts 自适应重绘）
+- 🔐 **安全登录**（PBKDF2-SHA256 加密，Cookie session，默认管理员 admin/alphalith）
+- 📡 **SSE 流式输出**（实时推送分析进度 / 分析师报告 / 多空辩论 / 最终决策）
+- 🎯 **标的格式校验**（失焦自动校验 A股/港股/美股/中文名，绿✓/红✗ 视觉反馈）
+- 🏷️ **供应商列表 Logo**（下拉菜单中每家供应商前附带品牌图标，一目了然）
+- 💬 **底部 AI 对话**（支持 /命令 快捷操作）
+- 📊 **ECharts 图表**（主题自适应配色，收益曲线 / 净值走势）
+
+### 模型配置：15 家供应商 × 两级联动选择
+
+选择「供应商」→ 自动填入 API Base URL → 选择预设模型 → 或输入自定义模型 ID，三步完成配置。
+
+| 供应商 | 最新模型 | 发布时间 |
+|---|---|---|
+| 🔥 **DeepSeek** | V4 Pro · V4 Flash | 2026.04 |
+| ☁️ **阿里云百炼** | Qwen3.6 Max · Coder Plus · Omni | 2026.05 |
+| 🌐 **OpenAI** | GPT-5.5 · GPT-5.6 Preview · o4-mini | 2026.04 |
+| 🧠 **Anthropic Claude** | Opus 4.7 · Sonnet 4.6 | 2026.05 |
+| ⭐ **Google Gemini** | 3.5 Flash · 3.1 Pro | 2026.06 |
+| 🏛️ **智谱 GLM** | GLM-5.2 · Flash | 2026.06.13 🆕 |
+| 🌙 **Kimi 月之暗面** | K2.7 Code · K2.6 | 2026.06.12 🆕 |
+| 🌋 **火山方舟·豆包** | Pro 256K · Lite 128K | 2026 |
+| 📘 **百度千帆** | ERNIE 4.5 · Speed | 2026 |
+| 💻 **腾讯 Coding Plan** | Auto / GLM-5 / Kimi K2.5 / MiniMax M2.5 | 2026 |
+| 🎫 **腾讯 Token Plan** | Auto / GLM-5.1 / Kimi K2.5 / MiniMax M2.7 | 2026 |
+| 🚀 **腾讯 Hy Token Plan** | Hy3 Preview (295B MoE · 256K ctx) | 2026 |
+| 🎯 **MiniMax** | MiniMax-M1 | 2026 |
+| ⚡ **阶跃星辰** | Step 3.5 Flash | 2026 |
+| 🔗 **硅基流动** | DS V4 Pro / Qwen3.6 (国内直连代理) | — |
+
+> 💡 海外供应商（OpenAI / Claude / Gemini）需代理或第三方中转。腾讯 Coding/Token Plan 提供固定月费编程订阅。支持**自定义模型 ID** 输入。
 
 ---
 
@@ -99,11 +100,6 @@ alphalith dashboard --symbols 600519,0700.HK,NVDA --output dashboard.html
   🐂 看多：PE 14.82 处于历史低位，ROE 19.52% 强劲，估值修复空间明确
   🐻 看空：PE 14.82 虽低但 ROE 已显疲态，"暂无拆股计划"缺乏催化剂
 
-【市场规则】
-  • T+1：今日买入次日才能卖出
-  • 距涨停 +8.90%（涨停价 ¥1406.90）
-  • 最小交易单位：100 股（1 手）
-
 🛡 风控：拒绝：建议手数 < 最小交易单位，自动改为 hold
 🔧 LLM：deepseek    数据源：sina    深度：standard
 💬 调用：6 次    in：2961 tok    out：380 tok    total：3341 tok
@@ -123,15 +119,9 @@ print(d.to_adp_json())         # ADP v1.0 标准 dict
 
 ---
 
-## 🔌 LLM 切换
+## 🔧 命令行
 
-| Provider | 安装 | Env Key | 说明 |
-|---|---|---|---|
-| DeepSeek | （内置 urllib，零依赖） | `DEEPSEEK_API_KEY` | 推荐，¥0.003/次 |
-| Qwen | `pip install -e .[qwen]` | `QWEN_API_KEY` | 阿里通义 |
-| Claude | `pip install -e .[anthropic]` | `ANTHROPIC_API_KEY` | 高质量 |
-| Ollama | `pip install -e .[ollama]` | `OLLAMA_HOST` | 本地零成本 |
-| StubLLM | （内置） | — | 无 key 兜底 |
+完整 CLI 子命令（analyze / backtest / dashboard / history / review / gui）使用说明见 [docs/CLI.md](docs/CLI.md)。
 
 ---
 
@@ -139,18 +129,25 @@ print(d.to_adp_json())         # ADP v1.0 标准 dict
 
 ```
 alphalith/
-├── core.py        # analyze() 主入口
-├── market.py      # 三市场识别 + 中文名解析（茅台→600519.SS）
-├── data.py        # 行情/新闻/基本面统一 Provider
-├── rules/         # A/HK/US 三市场规则引擎
-├── agents.py      # 4 分析师 + 多空辩论
-├── llm.py         # 降级链 + token 计数
-├── schema.py      # ADP v1.0 Decision dataclass
-├── backtest.py    # 回测引擎（均线/LLM 策略 + buy&hold 基准 + 夏普/最大回撤）
-├── html_report.py # HTML 可视化报告（Chart.js 价格图/资金曲线/买卖点）
-├── journal.py     # SQLite 决策日志
-├── report.py      # 中文报告渲染
-└── cli.py         # CLI 入口（analyze / analyze-batch / backtest / history / review）
+├── core.py         # analyze() 主入口
+├── market.py       # 三市场识别 + 中文名解析
+├── data.py         # 行情/新闻/基本面统一 Provider
+├── rules.py        # A/HK/US 三市场规则引擎
+├── agents.py       # 4 分析师 + 多空辩论
+├── llm.py          # 降级链 + token 计数
+├── schema.py       # ADP v1.0 Decision dataclass
+├── backtest.py     # 回测引擎（7 策略 + buy&hold 基准 + 风险指标）
+├── html_report.py  # HTML 可视化报告
+├── journal.py      # SQLite 决策日志
+├── report.py       # 中文报告渲染
+├── cli.py          # CLI 入口
+├── dashboard.py    # Dashboard 面板（行情 + 信号 + 热力图）
+├── gui/
+│   ├── __init__.py # GUI HTTP 服务
+│   └── app.html    # GUI 前端（单文件，CSS/JS 内联）
+├── docs/
+│   └── CLI.md      # CLI 完整使用手册
+└── tests/
 ```
 
 ---
@@ -163,96 +160,4 @@ alphalith/
 
 ---
 
-## 📈 回测基准对比（均线策略 90 日回测，5 日持有窗口）
-
-| 标的 | 入场 | 胜率 | 累计 | B&H | Alpha | 夏普 | 最大回撤 |
-|---|---|---|---|---|---|---|---|
-| 茅台 600519 | 36 笔 | 63.9% | +7.90% | -3.73% | **+11.63%** | 0.61 | -26.22% |
-| 腾讯 0700.HK | 20 笔 | 80.0% | +5.08% | -16.99% | **+22.07%** | 0.62 | -13.69% |
-| NVDA | 19 笔 | 68.4% | +29.14% | +14.91% | **+14.22%** | 3.10 | -11.83% |
-
-> 三市场均跑赢 buy & hold 基准。LLM 决策器（`--strategy llm`）单笔质量更高、夏普更优，但成本随 days 线性增长。
-
-### 策略模板对比（120 日，5 日窗口）
-
-| 标的 | ma_cross | macd | rsi | bollinger | momentum | reversal |
-|---|---|---|---|---|---|---|
-| 茅台 90d | +7.90% / 36笔 | -9.14% / 14笔 | +10.45% / 6笔 | -23.83% / 25笔 | +11.05% / 15笔 | **+12.44% / 3笔** |
-| 腾讯 90d | -70.43% / 35笔 | +7.77% / 12笔 | +8.01% / 7笔 | **+70.82% / 23笔** | -49.32% / 12笔 | +3.84% / 3笔 |
-| NVDA 90d | +69.07% / 35笔 | +6.42% / 12笔 | +0.06% / 5笔 | +7.12% / 22笔 | -13.31% / 14笔 | +4.01% / 4笔 |
-
-> 不同市场适配不同策略：A 股 RSI 超卖反弹更有效，港股/美股布林带均值回归更强。
-> `reversal` 策略极度精选（3-4 笔/90 日），只在极端 z-score 时出手，盈亏比最高。
-> 可用 `--compare` 双策略对比 HTML 直观查看优劣。
-
----
-## 📊 Dashboard 面板
-
-一键生成自包含 HTML Dashboard，无需服务器：
-
-```bash
-alphalith dashboard --symbols 600519,0700.HK,NVDA --output dashboard.html
-```
-
-面板内容：
-- 实时行情卡片（价格 + 涨跌幅 + 成交量）
-- 策略信号矩阵（每个标的 × 每种策略的最新动作）
-- 回测绩效总览表（6 策略 × 3 市场）
-- 收益热力图（Canvas 渲染，绿=盈/红=亏）
-- 最近决策时间线（来自 SQLite 日志）
-
----
-## 🖥️ GUI 投研工作台
-
-零外部依赖，单文件 HTML（CSS + JS 内联）+ Python 内置 HTTP 服务，一键启动：
-
-```bash
-alphalith gui                    # 默认 8888 端口
-alphalith gui --port 3000        # 自定义端口
-alphalith gui --no-browser       # 仅启动服务
-```
-
-### 功能页面（7 个）
-
-| 页面 | 功能 |
-|---|---|
-| **投研分析** | SSE 流式实时辩论（4 分析师 + 多空辩论），进度条显示分析阶段，图表 + 指标 + 决策卡片 |
-| **策略回测** | 7 策略多选（checkbox）并行回测，14 项风险指标（Sharpe/Sortino/Calmar/信息比等），收益曲线图 + 交易记录 |
-| **投研面板** | Dashboard 一键生成（行情卡片 + 信号矩阵 + 回测热力图 + 决策时间线），内嵌 iframe 展示 |
-| **信号面板** | 多标的 × 多策略信号汇总（LONG/SHORT/NEUTRAL），支持批量输入 |
-| **批量分析** | 空格分隔多标的批量投研，串行执行 + 进度追踪 |
-| **决策历史** | 按标的筛选历史决策记录，自动加载最新数据 |
-| **审查统计** | 买入/卖出/持仓次数统计 + 胜率 + 平均置信度 |
-
-### 界面特性
-
-- 🌓 **暗黑 / 浅色主题切换**（CSS 变量驱动，ECharts 同步重绘）
-- 🔐 **真实登录系统**（PBKDF2-SHA256 加密，Cookie session，默认管理员 admin/alphalith）
-- 📡 **SSE 流式输出**（投研分析实时推送进度 / 分析师报告 / 多空辩论）
-- 🎯 **标的输入校验**（失去焦点自动调 /api/resolve 校验，绿✓/红✗ 视觉反馈，A股/港股/美股/中文名全覆盖）
-- 💬 **底部 AI 对话**（支持 /命令 快捷操作，Craft/Auto 模式切换）
-- 📊 **ECharts 图表**（暗黑/浅色主题自适应配色，收益曲线 / 净值走势）
-
-### 支持模型（供应商/模型两级选择 + 自定义ID）
-
-| 厂商 | 最新模型 | 发布时间 | Coding Plan |
-|------|---------|---------|:---:|
-| **DeepSeek** | V4 Pro · V4 Flash | 2026.04 | — |
-| **阿里百炼** | Qwen3.6 Max · Coder Plus · Omni | 2026.05 | ✅ |
-| **OpenAI** | GPT-5.5 · o4-mini | 2026.04 | — |
-| **Anthropic** | Claude Opus 4.7 · Sonnet 4.6 | 2026.05 | — |
-| **Google** | Gemini 3.5 Flash · 3.1 Pro | 2026.06 | — |
-| **智谱** | GLM-5.2 · Flash | 2026.06.13 🆕 | ✅ |
-| **Kimi** | K2.7 Code · K2.6 | 2026.06.12 🆕 | ✅ |
-| **火山方舟** | 豆包-Pro 256K · Lite | 2026 | ✅ |
-| **百度千帆** | ERNIE 4.5 · Speed | 2026 | — |
-| **腾讯混元** | 混元 Turbo | 2026 | — |
-| **MiniMax** | MiniMax-M1 | 2026 | — |
-| **阶跃星辰** | Step 3.5 Flash | 2026 | — |
-| **硅基流动** | DS V4 Pro / Qwen3.6 (代理) | — | — |
-
-> 💡 海外供应商（OpenAI / Claude / Gemini）需代理或第三方中转；标注 ✅ 的提供固定月费 Coding Plan 编程订阅。支持**自定义模型 ID** 输入。
-
----
-
-> 🪨 *Sealed in the Bedrock
+> 🪨 *Sealed in the Bedrock*

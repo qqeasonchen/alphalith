@@ -248,12 +248,36 @@ DEFAULT_CONFIG = {
                 {"id": "ernie-speed-128k",     "name": "ERNIE Speed · 高速",   "desc": "高并发低延迟"},
             ],
         },
-        "hunyuan": {
-            "name": "腾讯混元",
-            "base_url": "https://api.hunyuan.cloud.tencent.com/v1",
-            "key_env": "HUNYUAN_API_KEY",
+        "tencent-coding": {
+            "name": "腾讯 Coding Plan",
+            "base_url": "https://api.lkeap.cloud.tencent.com/coding/v3",
+            "key_env": "TENCENT_CODING_API_KEY",
             "models": [
-                {"id": "hunyuan-turbo",         "name": "混元 Turbo · 旗舰",   "desc": "腾讯生态 高速推理"},
+                {"id": "tc-code-latest",         "name": "Auto · 智能路由",      "desc": "自动匹配最优模型 · Coding Plan"},
+                {"id": "glm-5",                  "name": "GLM-5 · 智谱",         "desc": "Coding Plan 代理 · 智谱旗舰"},
+                {"id": "kimi-k2.5",              "name": "Kimi K2.5 · 月暗",     "desc": "Coding Plan 代理 · 月暗旗舰"},
+                {"id": "minimax-m2.5",           "name": "MiniMax M2.5 · 海螺",  "desc": "Coding Plan 代理 · MiniMax旗舰"},
+            ],
+        },
+        "tencent-token": {
+            "name": "腾讯 Token Plan · 通用",
+            "base_url": "https://api.lkeap.cloud.tencent.com/plan/v3",
+            "key_env": "TENCENT_TOKEN_API_KEY",
+            "models": [
+                {"id": "tc-code-latest",         "name": "Auto · 智能路由",      "desc": "自动匹配最优模型 · Token Plan"},
+                {"id": "glm-5.1",                "name": "GLM-5.1 · 智谱最新",   "desc": "Token Plan · 智谱最新旗舰"},
+                {"id": "glm-5",                  "name": "GLM-5 · 智谱",         "desc": "Token Plan · 智谱旗舰"},
+                {"id": "kimi-k2.5",              "name": "Kimi K2.5 · 月暗",     "desc": "Token Plan · 月暗旗舰"},
+                {"id": "minimax-m2.7",           "name": "MiniMax M2.7 · 海螺最新","desc": "Token Plan · MiniMax最新"},
+                {"id": "minimax-m2.5",           "name": "MiniMax M2.5 · 海螺",  "desc": "Token Plan · MiniMax旗舰"},
+            ],
+        },
+        "tencent-hy": {
+            "name": "腾讯 Hy Token Plan",
+            "base_url": "https://api.lkeap.cloud.tencent.com/plan/v3",
+            "key_env": "TENCENT_HY_API_KEY",
+            "models": [
+                {"id": "hy3-preview",            "name": "Hy3 Preview · 旗舰",   "desc": "295B/21B MoE · 256K ctx · Agent 工作负载"},
             ],
         },
         "minimax": {

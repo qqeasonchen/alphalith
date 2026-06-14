@@ -837,7 +837,7 @@ a { color:inherit; text-decoration:none; }
     <input type="text" class="action-input" id="histSymbol" placeholder="留空=全部，或输入标的如：600519（格式同左）" style="width:160px" onblur="validateSymbol(this, document.getElementById('histSymbolStatus'))">
     <span id="histSymbolStatus" class="symbol-status"></span>
     <label>条数</label>
-    <input type="number" class="action-input" id="histLimit" value="20" style="width:70px">
+    <input type="number" class="action-input" id="histLimit" value="200" style="width:70px">
     <button class="btn-primary" onclick="loadHistory()">加载历史</button>
     <button class="btn-secondary" onclick="loadReview()">审查统计</button>
   </div>
@@ -893,6 +893,10 @@ a { color:inherit; text-decoration:none; }
             </select></div>
         </div>
         <div class="setting-row">
+          <div><div class="setting-label">API Base URL</div><div class="setting-desc">选择供应商后自动填入</div></div>
+          <div class="setting-control"><input class="setting-input" id="setApiBase" placeholder="https://api.deepseek.com/v1"></div>
+        </div>
+        <div class="setting-row">
           <div><div class="setting-label">模型 ID</div><div class="setting-desc">选择预设模型或输入自定义名称</div></div>
           <div class="setting-control">
             <select class="setting-input" id="setModelId" onchange="onModelIdChange(this)" style="cursor:pointer;max-width:420px">
@@ -902,10 +906,6 @@ a { color:inherit; text-decoration:none; }
             <div style="font-size:10px;color:var(--text-secondary);margin-top:2px">
               💡 选「🔧 自定义模型ID…」可输入任意标识；标注「🛡️需代理」的供应商在国内需配置代理访问
             </div></div>
-        </div>
-        <div class="setting-row">
-          <div><div class="setting-label">API Base URL</div><div class="setting-desc">模型服务端点</div></div>
-          <div class="setting-control"><input class="setting-input" id="setApiBase" placeholder="https://api.deepseek.com/v1"></div>
         </div>
         <div class="setting-row">
           <div><div class="setting-label">API Key</div><div class="setting-desc" id="setApiKeyDesc">环境变量: DEEPSEEK_API_KEY</div></div>
@@ -1751,10 +1751,13 @@ function renderSignals(signals) {
 // ============================================================
 async function loadHistory() {
   const sym = document.getElementById('histSymbol').value.trim();
-  const limit = parseInt(document.getElementById('histLimit').value)||20;
+  const limit = parseInt(document.getElementById('histLimit').value)||200;
   try {
     const data = await apiGet('/api/history?symbol='+encodeURIComponent(sym)+'&limit='+limit);
     renderHistory(data.history||data.records||[]);
+    // 标记已查看，清除未读数
+    localStorage.setItem('lastHistoryView', Date.now());
+    updateBadges();
     updateStats();
   } catch (err) {
     renderError('#histResult', err.message);
@@ -1763,11 +1766,7 @@ async function loadHistory() {
 
 function renderHistory(records) {
   const arr = Array.isArray(records)?records:[];
-  const count = arr.length;
-  const badge = document.getElementById('histBadge');
-  if (badge) { badge.textContent=count; badge.style.display=count?'':'none'; }
-
-  if (!count) {
+  if (!arr.length) {
     document.querySelector('#histResult').innerHTML = '<div class="empty-state"><p>暂无历史记录</p></div>';
     return;
   }
@@ -1944,7 +1943,7 @@ var _providers = {}; // {provider_key: {name,base_url,key_env,models:[{id,name,d
 // 从后端获取供应商列表
 async function loadProviders() {
   try {
-    const cfg = await api('/api/config');
+    const cfg = await apiGet('/api/config');
     if (cfg && cfg.providers) _providers = cfg.providers;
     const sel = document.getElementById('setProvider');
     sel.innerHTML = '<option value="">— 请选择供应商 —</option>';
@@ -1960,7 +1959,9 @@ async function loadProviders() {
       else if (p.name.includes('Kimi')) icon = '🌙 ';
       else if (p.name.includes('火山')) icon = '🌋 ';
       else if (p.name.includes('千帆')) icon = '📘 ';
-      else if (p.name.includes('混元')) icon = '💬 ';
+      else if (p.name.includes('Coding')) icon = '💻 ';
+      else if (p.name.includes('Hy Token')) icon = '🚀 ';
+      else if (p.name.includes('Token Plan')) icon = '🎫 ';
       else if (p.name.includes('MiniMax')) icon = '🎯 ';
       else if (p.name.includes('阶跃')) icon = '⚡ ';
       else if (p.name.includes('硅基')) icon = '🔗 ';
@@ -2041,8 +2042,7 @@ async function loadSettings() {
   try {
     // 先加载供应商列表
     await loadProviders();
-    const cfg = await api('/api/config');
-    if (!cfg) return;
+    const cfg = await apiGet('/api/config');
     
     // 恢复供应商选择
     if (cfg.provider) {
@@ -2132,10 +2132,27 @@ function renderError(sel, msg) {
 
 async function updateBadges() {
   try {
-    const data = await apiGet('/api/history?limit=1');
-    const total = data.total||(data.history&&data.history.length)||0;
+    const data = await apiGet('/api/history?limit=200');
+    const records = data.history || data.records || [];
+    const total = data.total || records.length;
+    
+    // 未读数：比上次查看时间晚的记录
+    const lastView = localStorage.getItem('lastHistoryView');
+    let unviewed = total;
+    if (lastView) {
+      const lv = parseInt(lastView);
+      unviewed = records.filter(r => {
+        const dt = r.date || r.timestamp || '';
+        const ts = new Date(dt).getTime();
+        return ts > lv;
+      }).length;
+    }
+    
     const badge = document.getElementById('histBadge');
-    if (badge) { badge.textContent=total; badge.style.display=total?'':'none'; }
+    if (badge) { 
+      badge.textContent = unviewed; 
+      badge.style.display = unviewed > 0 ? '' : 'none'; 
+    }
   } catch(e) {}
   updateStats();
 }
