@@ -33,11 +33,16 @@ alphalith gui --no-browser       # 仅启动服务
 
 打开浏览器即用，无需任何前端构建工具。
 
-![Alphalith GUI 投研分析 - 茅台](docs/gui-analysis-screenshot.png)
+以下截图均为 Alphalith 在 **中际旭创 (300308)** 上真实运行生成：
+- 🔍 **投研分析**: 4 位 AI 分析师 → 多轮辩论 → 风控 → 最终决策
+- 📈 **策略回测**: 7 种内置策略，多策略对比表格（Sharpe / 最大回撤 / 胜率）
+- 📊 **投研面板**: 多标的监控面板（行情卡片 + 信号矩阵 + 回测热力图）
 
-![Alphalith GUI 策略回测 - 多策略对比](docs/gui-backtest-screenshot.png)
+![投研分析 - 中际旭创](docs/screenshots/research_300308.png)
 
-![Alphalith GUI 投研面板 - 多市场行情](docs/gui-dashboard-screenshot.png)
+![策略回测 - 中际旭创](docs/screenshots/backtest_300308.png)
+
+![投研面板 - 中际旭创](docs/screenshots/dashboard_300308.png)
 
 ### 七大功能页面
 
@@ -92,7 +97,7 @@ alphalith gui --no-browser       # 仅启动服务
 ```python
 from alphalith import analyze
 
-d = analyze("茅台")            # 自动走真实行情 + LLM
+d = analyze("中际旭创")            # 自动走真实行情 + LLM
 print(d.action, d.confidence)  # 'hold', 0.86
 print(d.to_adp_json())         # ADP v1.0 标准 dict
 ```
