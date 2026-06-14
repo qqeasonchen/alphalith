@@ -97,9 +97,13 @@ Multi-stock monitoring dashboard: price cards, signal matrix, strategy heatmaps.
 | 🏠 **Research** | SSE streaming real-time debate, progress tracking, ECharts + decision cards |
 | 📈 **Backtest** | 7-strategy parallel comparison, 14 risk metrics (Sharpe/Sortino/Calmar), P&L curve |
 | 📊 **Dashboard** | One-click multi-stock monitoring (price cards + signal matrix + backtest heatmap) |
+| ⭐ **Watchlist** | Multi-list management, real-time quotes, one-click analysis |
+| 💼 **Portfolio** | Position tracking, real-time P&L, weighted cost basis |
+| 📰 **Sentiment** | 6 built-in + custom sources (RSS/JSON/HTML), LLM scoring, multi-market coverage |
+| 🔔 **Alerts** | Price/change threshold triggers, browser notifications |
 | 📦 **Batch** | Space-delimited multi-symbol, serial execution + real-time progress |
 | 📋 **Journal** | Filter by symbol + unread count badge, load all records by default |
-| ⚙️ **Settings** | 15 LLM providers, data source management, account settings |
+| ⚙️ **Settings** | 15 LLM providers, data source management, custom sentiment sources, account settings |
 
 - 🌓 **Dark / Light theme** (CSS variables, ECharts auto-redraw)
 - 🔐 **Secure login** (PBKDF2-SHA256, Cookie session, default admin: admin/alphalith)
@@ -195,6 +199,10 @@ alphalith/
 │   ├── report.py        # Text report renderer
 │   ├── cli.py           # CLI entry point
 │   ├── dashboard.py     # Dashboard (quotes + signals + heatmap)
+│   ├── watchlist.py     # Multi-list watchlist management
+│   ├── portfolio.py     # Position tracking + P&L calculation
+│   ├── sentiment.py     # Multi-source sentiment analysis (6 built-in + custom)
+│   ├── alerts.py        # Price/change threshold alerts
 │   ├── gui/
 │   │   ├── __init__.py  # GUI HTTP server
 │   │   └── app.html     # GUI frontend (single file, inline CSS/JS)
@@ -210,9 +218,10 @@ alphalith/
 ## 🗺 Roadmap
 
 - ✅ **v0.1** — CLI · 4 Agents · A-share rules · DeepSeek
-- 🔨 **v0.2** — HK/US rules · Web GUI · Multi-LLM
-- 📋 **v0.3** — Cross-market `compare` · Webhook · Bots
-- 📋 **v1.0** — Backtest · Strategy market · Bilingual docs
+- ✅ **v0.2** — HK/US rules · Web GUI · Multi-LLM · Backtest
+- ✅ **v0.3** — Watchlist · Portfolio Tracker · Sentiment Analysis · Alerts · Custom Data Sources
+- 📋 **v0.4** — Cross-market `compare` · TradingView Webhook · Telegram/Lark Bot · Strategy Marketplace
+- 📋 **v1.0** — Live trading · Community strategies · Multi-language docs
 
 ---
 
