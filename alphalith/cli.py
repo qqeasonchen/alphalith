@@ -110,6 +110,25 @@ def main(argv: list[str] | None = None) -> int:
     p_gui.add_argument("--port", type=int, default=8888, help="HTTP 服务端口（默认 8888）")
     p_gui.add_argument("--no-browser", action="store_true", help="不自动打开浏览器")
 
+    # ── v0.3.0 新增 ──
+    p_wl = sub.add_parser("watchlist", help="管理自选股/观察列表")
+    p_wl.add_argument("action", nargs="?", default="list", choices=["list", "create", "add", "remove", "delete"])
+    p_wl.add_argument("--name", help="列表名称（create 时必填）")
+    p_wl.add_argument("--list-id", type=int, default=None, help="列表 ID（不指定则用第一个）")
+    p_wl.add_argument("--symbol", help="标的代码")
+    p_wl.add_argument("--notes", default="", help="备注")
+
+    p_pf = sub.add_parser("portfolio", help="管理持仓追踪")
+    p_pf.add_argument("action", nargs="?", default="list", choices=["list", "summary", "add", "remove"])
+    p_pf.add_argument("--symbol", help="标的代码")
+    p_pf.add_argument("--entry-price", type=float, default=0, help="成本价")
+    p_pf.add_argument("--quantity", type=float, default=0, help="数量")
+    p_pf.add_argument("--entry-date", default="", help="入场日期")
+    p_pf.add_argument("--id", type=int, default=0, help="持仓 ID")
+
+    p_sent = sub.add_parser("sentiment", help="舆情情绪分析")
+    p_sent.add_argument("symbol", help="标的代码")
+
     args = parser.parse_args(argv)
 
     if args.cmd == "analyze":
@@ -273,6 +292,116 @@ def main(argv: list[str] | None = None) -> int:
         except KeyboardInterrupt:
             print("\n  收到中断信号，正在停止...")
             server.shutdown()
+        return 0
+
+    # ── v0.3.0 新增 ──
+    if args.cmd == "watchlist":
+        from .watchlist import create_list, delete_list, list_lists, list_items, add_item, remove_item_by_symbol
+        if args.action == "list":
+            lists = list_lists()
+            if not lists:
+                print("（暂无自选列表，用 watchlist create --name 创建）")
+                return 0
+            for lst in lists:
+                items = list_items(lst["id"])
+                print(f"\n📋 {lst['name']} (id={lst['id']}, {len(items)} 个标的)")
+                print("─" * 60)
+                if items:
+                    for it in items:
+                        print(f"  {it['symbol']:<14} {it['name']:<12} {it['market']:<10} {it.get('notes','')}")
+                else:
+                    print("  （空）")
+        elif args.action == "create":
+            if not args.name:
+                print("❌ --name 必填")
+                return 1
+            r = create_list(args.name)
+            print(f"✅ 列表已创建: {r['name']} (id={r['id']})")
+        elif args.action == "add":
+            if not args.symbol:
+                print("❌ --symbol 必填")
+                return 1
+            # Auto-select list
+            lid = args.list_id
+            if lid is None:
+                lists = list_lists()
+                if not lists:
+                    print("❌ 暂无列表，请先 create")
+                    return 1
+                lid = lists[0]["id"]
+            add_item(lid, args.symbol, notes=args.notes)
+            print(f"✅ {args.symbol} 已加入列表 {lid}")
+        elif args.action == "remove":
+            if not args.symbol:
+                print("❌ --symbol 必填")
+                return 1
+            lid = args.list_id
+            if lid is None:
+                lists = list_lists()
+                if not lists:
+                    print("❌ 暂无列表")
+                    return 1
+                lid = lists[0]["id"]
+            remove_item_by_symbol(lid, args.symbol)
+            print(f"✅ {args.symbol} 已从列表 {lid} 移除")
+        elif args.action == "delete":
+            lid = args.list_id
+            if lid is None:
+                lists = list_lists()
+                if not lists:
+                    print("❌ 暂无列表")
+                    return 1
+                lid = lists[0]["id"]
+            delete_list(lid)
+            print(f"✅ 列表 {lid} 已删除")
+        return 0
+
+    if args.cmd == "portfolio":
+        from .portfolio import add_position, remove_position, list_positions, get_summary
+        if args.action in ("list", "summary"):
+            s = get_summary()
+            if s["count"] == 0:
+                print("（暂无持仓记录）")
+                return 0
+            print(f"\n💼 持仓汇总：{s['count']} 只")
+            print(f"总成本: ¥{s['total_cost']:,.2f}  总市值: ¥{s['total_value']:,.2f}  盈亏: {s['total_pnl']:+,.2f} ({s['total_pnl_pct']:+.2f}%)")
+            print("─" * 80)
+            for p in s["positions"]:
+                pnl_s = f"{p['pnl']:+,.2f} ({p['pnl_pct']:+.2f}%)"
+                print(f"  {p['symbol']:<14} 成本:{p['entry_price']:.2f} 现价:{p['current_price']:.2f} "
+                      f"×{p['quantity']:<8} 市值:¥{p['market_value']:,.2f}  盈亏:{pnl_s}")
+        elif args.action == "add":
+            if not args.symbol or not args.entry_price:
+                print("❌ --symbol 和 --entry-price 必填")
+                return 1
+            add_position(args.symbol, args.entry_price, args.quantity or 1,
+                        entry_date=args.entry_date)
+            print(f"✅ 持仓已添加: {args.symbol} @ {args.entry_price} × {args.quantity or 1}")
+        elif args.action == "remove":
+            if not args.id:
+                print("❌ --id 必填")
+                return 1
+            remove_position(args.id)
+            print(f"✅ 持仓 id={args.id} 已删除")
+        return 0
+
+    if args.cmd == "sentiment":
+        from .sentiment import analyze as sentiment_analyze
+        try:
+            report = sentiment_analyze(args.symbol)
+            emo = {"bullish": "🐂 偏多", "bearish": "🐻 偏空", "neutral": "😐 中性"}
+            print(f"\n📰 舆情分析: {report.name or report.symbol}")
+            print(f"{emo.get(report.overall_sentiment, report.overall_sentiment)}  指数: {report.overall_score}/100  置信: {report.confidence:.0%}")
+            print(f"摘要: {report.summary}")
+            print(f"数据源: {report.data_source}")
+            if report.headlines:
+                print(f"\n新闻标题 ({len(report.headlines)} 条):")
+                for h in report.headlines:
+                    em = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}
+                    print(f"  {em.get(h.sentiment, '⚪')} [{h.score}] {h.title}")
+        except Exception as e:
+            print(f"❌ 舆情分析失败: {e}")
+            return 1
         return 0
 
     return 1

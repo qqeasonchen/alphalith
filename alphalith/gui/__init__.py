@@ -167,6 +167,9 @@ DEFAULT_CONFIG = {
     "data_source": "auto",
     "data_source_order": ["sina", "eastmoney", "tencent", "akshare", "yfinance"],
     "custom_sources": {},
+    "sentiment_sources": ["googlenews", "yahoo", "finviz", "stocktwits", "eastmoney", "sina"],
+    "sentiment_source_order": ["googlenews", "yahoo", "eastmoney", "finviz", "stocktwits", "sina"],
+    "custom_sentiment_sources": {},
     "providers": {
         "deepseek": {
             "name": "DeepSeek 官方",
@@ -520,6 +523,65 @@ class GuiHandler(BaseHTTPRequestHandler):
                 self._send_json(result)
             except Exception as e:
                 self._send_error_json(str(e))
+            return
+
+        # ── Watchlist ──
+        if path == "/api/watchlist/lists":
+            from ..watchlist import list_lists as wl_list
+            self._send_json({"lists": wl_list()})
+            return
+
+        if path == "/api/watchlist/items":
+            qs = parse_qs(parsed.query)
+            list_id = int(qs.get("list_id", [0])[0])
+            with_quotes = qs.get("quotes", ["0"])[0] == "1"
+            from ..watchlist import list_items, get_items_with_quotes
+            if with_quotes:
+                items = get_items_with_quotes(list_id)
+            else:
+                items = list_items(list_id)
+            self._send_json({"items": items, "list_id": list_id})
+            return
+
+        # ── Portfolio ──
+        if path == "/api/portfolio":
+            from ..portfolio import list_positions
+            self._send_json({"positions": list_positions()})
+            return
+
+        if path == "/api/portfolio/summary":
+            from ..portfolio import get_summary
+            self._send_json(get_summary())
+            return
+
+        # ── Alerts ──
+        if path == "/api/alerts":
+            qs = parse_qs(parsed.query)
+            sym = qs.get("symbol", [None])[0]
+            from ..alerts import list_alerts
+            self._send_json({"alerts": list_alerts(symbol=sym)})
+            return
+
+        # ── Sentiment sources config ──
+        if path == "/api/sentiment/sources":
+            from ..sentiment import SOURCE_META
+            cfg = load_config()
+            custom = cfg.get("custom_sentiment_sources", {})
+            all_sources = dict(SOURCE_META)
+            all_sources.update(custom)
+            self._send_json({
+                "sources": all_sources,
+                "enabled": cfg.get("sentiment_sources", list(SOURCE_META.keys())),
+                "order": cfg.get("sentiment_source_order", list(SOURCE_META.keys())),
+                "custom_sources": custom,
+            })
+            return
+
+        # ── Sentiment custom sources CRUD ──
+        if path == "/api/sentiment/sources/custom":
+            cfg = load_config()
+            custom = cfg.get("custom_sentiment_sources", {})
+            self._send_json({"sources": custom})
             return
 
         self._send_error_json("Not found", 404)
@@ -1015,6 +1077,262 @@ class GuiHandler(BaseHTTPRequestHandler):
                 cfg = DashboardConfig(symbols=symbols)
                 html = render_dashboard(cfg)
                 self._send_json({"html": html})
+            except Exception as e:
+                self._send_error_json(str(e))
+            return
+
+        # ── Watchlist ──
+        if path == "/api/watchlist/lists":
+            try:
+                body = json.loads(self._read_body().decode("utf-8"))
+                action = body.get("action", "create")
+                from ..watchlist import create_list, delete_list, rename_list, list_lists
+                if action == "create":
+                    name = body.get("name", "").strip()
+                    if not name:
+                        self._send_error_json("name is required", 400)
+                        return
+                    result = create_list(name)
+                    self._send_json({"ok": True, "list": result})
+                elif action == "delete":
+                    list_id = int(body.get("list_id", 0))
+                    ok = delete_list(list_id)
+                    self._send_json({"ok": ok})
+                elif action == "rename":
+                    list_id = int(body.get("list_id", 0))
+                    ok = rename_list(list_id, body.get("name", ""))
+                    self._send_json({"ok": ok})
+                else:
+                    self._send_json({"lists": list_lists()})
+            except Exception as e:
+                self._send_error_json(str(e))
+            return
+
+        if path == "/api/watchlist/items":
+            try:
+                body = json.loads(self._read_body().decode("utf-8"))
+                action = body.get("action", "add")
+                from ..watchlist import add_item, remove_item, remove_item_by_symbol, list_items
+                if action == "add":
+                    list_id = int(body.get("list_id", 1))
+                    symbol = body.get("symbol", "").strip()
+                    if not symbol:
+                        self._send_error_json("symbol is required", 400)
+                        return
+                    item = add_item(list_id, symbol,
+                                    name=body.get("name", ""),
+                                    market=body.get("market", ""),
+                                    notes=body.get("notes", ""))
+                    self._send_json({"ok": True, "item": item})
+                elif action == "remove":
+                    item_id = int(body.get("item_id", 0))
+                    symbol = body.get("symbol", "")
+                    list_id = int(body.get("list_id", 1))
+                    if item_id:
+                        ok = remove_item(item_id)
+                    elif symbol:
+                        ok = remove_item_by_symbol(list_id, symbol)
+                    else:
+                        self._send_error_json("item_id or symbol required", 400)
+                        return
+                    self._send_json({"ok": ok})
+                else:
+                    list_id = int(body.get("list_id", 1))
+                    self._send_json({"items": list_items(list_id)})
+            except Exception as e:
+                self._send_error_json(str(e))
+            return
+
+        # ── Portfolio ──
+        if path == "/api/portfolio":
+            try:
+                body = json.loads(self._read_body().decode("utf-8"))
+                action = body.get("action", "add")
+                from ..portfolio import (
+                    add_position, update_position, remove_position, get_summary
+                )
+                if action == "add":
+                    symbol = body.get("symbol", "").strip()
+                    if not symbol:
+                        self._send_error_json("symbol is required", 400)
+                        return
+                    result = add_position(
+                        symbol=symbol,
+                        entry_price=float(body.get("entry_price", 0)),
+                        quantity=float(body.get("quantity", 0)),
+                        name=body.get("name", ""),
+                        market=body.get("market", ""),
+                        entry_date=body.get("entry_date", ""),
+                        notes=body.get("notes", ""),
+                    )
+                    self._send_json({"ok": True, "position": result})
+                elif action == "update":
+                    pos_id = int(body.get("id", 0))
+                    ok = update_position(
+                        pos_id,
+                        entry_price=body.get("entry_price"),
+                        quantity=body.get("quantity"),
+                        notes=body.get("notes"),
+                    )
+                    self._send_json({"ok": ok})
+                elif action == "remove":
+                    pos_id = int(body.get("id", 0))
+                    ok = remove_position(pos_id)
+                    self._send_json({"ok": ok})
+                elif action == "summary":
+                    self._send_json(get_summary())
+                else:
+                    self._send_error_json("Unknown action: " + action, 400)
+            except Exception as e:
+                self._send_error_json(str(e))
+            return
+
+        # ── Sentiment ──
+        if path == "/api/sentiment":
+            try:
+                body = json.loads(self._read_body().decode("utf-8"))
+                symbol = body.get("symbol", "").strip()
+                if not symbol:
+                    self._send_error_json("symbol is required", 400)
+                    return
+                from ..sentiment import analyze as sentiment_analyze
+                enabled = body.get("enabled_sources") or load_config().get("sentiment_sources", None)
+                report = sentiment_analyze(symbol, enabled_sources=enabled)
+                self._send_json({
+                    "symbol": report.symbol,
+                    "name": report.name,
+                    "overall_sentiment": report.overall_sentiment,
+                    "overall_score": report.overall_score,
+                    "confidence": report.confidence,
+                    "headlines": [
+                        {
+                            "title": h.title,
+                            "sentiment": h.sentiment,
+                            "score": h.score,
+                            "source": h.source,
+                        }
+                        for h in report.headlines
+                    ],
+                    "summary": report.summary,
+                    "data_source": report.data_source,
+                    "source_stats": report.source_stats,
+                })
+            except Exception as e:
+                self._send_error_json(str(e))
+            return
+
+        # ── Sentiment custom sources CRUD ──
+        if path == "/api/sentiment/sources/custom":
+            try:
+                body = json.loads(self._read_body().decode("utf-8"))
+                action = body.get("action", "add")
+                cfg = load_config()
+                custom = cfg.get("custom_sentiment_sources", {})
+                if action == "add":
+                    code = body.get("code", "").strip()
+                    if not code:
+                        self._send_error_json("code is required", 400)
+                        return
+                    # 检查是否与内置源冲突
+                    from ..sentiment import SOURCE_META
+                    if code in SOURCE_META:
+                        self._send_error_json("代码与内置数据源冲突", 409)
+                        return
+                    # 自动生成 source meta
+                    src_type = body.get("type", "rss")
+                    type_label = {"rss": "RSS", "json_api": "JSON API", "html_scrape": "HTML抓取"}.get(src_type, src_type)
+                    custom[code] = {
+                        "name": body.get("name", code),
+                        "icon": "🔧",
+                        "color": "#9b59b6",
+                        "desc": body.get("desc", f"自定义{type_label}源"),
+                        "coverage": body.get("coverage", "自定义"),
+                        "url": body.get("url", ""),
+                        "type": src_type,
+                        "item_path": body.get("item_path", ""),
+                        "field": body.get("field", "title"),
+                        "headers": body.get("headers", {}),
+                    }
+                    cfg["custom_sentiment_sources"] = custom
+                    # 自动加入启用列表和排序
+                    if code not in cfg.get("sentiment_sources", []):
+                        cfg.setdefault("sentiment_sources", []).append(code)
+                    if code not in cfg.get("sentiment_source_order", []):
+                        cfg.setdefault("sentiment_source_order", []).append(code)
+                    save_config(cfg)
+                    self._send_json({"ok": True, "source": custom[code]})
+
+                elif action == "remove":
+                    code = body.get("code", "").strip()
+                    if code in custom:
+                        del custom[code]
+                        cfg["custom_sentiment_sources"] = custom
+                        # 从启用和排序中移除
+                        cfg["sentiment_sources"] = [s for s in cfg.get("sentiment_sources", []) if s != code]
+                        cfg["sentiment_source_order"] = [s for s in cfg.get("sentiment_source_order", []) if s != code]
+                        save_config(cfg)
+                        self._send_json({"ok": True})
+                    else:
+                        self._send_error_json("自定义源不存在", 404)
+
+                elif action == "update":
+                    code = body.get("code", "").strip()
+                    if code not in custom:
+                        self._send_error_json("自定义源不存在", 404)
+                        return
+                    for f in ("name", "url", "type", "item_path", "field", "desc", "coverage"):
+                        if f in body:
+                            custom[code][f] = body[f]
+                    if "headers" in body:
+                        custom[code]["headers"] = body["headers"]
+                    cfg["custom_sentiment_sources"] = custom
+                    save_config(cfg)
+                    self._send_json({"ok": True, "source": custom[code]})
+
+                else:
+                    self._send_error_json("Unknown action: " + action, 400)
+            except Exception as e:
+                self._send_error_json(str(e))
+            return
+
+        # ── Alerts ──
+        if path == "/api/alerts":
+            try:
+                body = json.loads(self._read_body().decode("utf-8"))
+                action = body.get("action", "create")
+                from ..alerts import (
+                    create_alert, delete_alert, toggle_alert, list_alerts, check_alerts,
+                    CONDITION_TYPES,
+                )
+                if action == "create":
+                    symbol = body.get("symbol", "").strip()
+                    condition_type = body.get("condition_type", "")
+                    threshold = float(body.get("threshold", 0))
+                    if not symbol or not condition_type:
+                        self._send_error_json("symbol and condition_type required", 400)
+                        return
+                    result = create_alert(symbol, condition_type, threshold,
+                                          name=body.get("name", ""))
+                    self._send_json({"ok": True, "alert": result})
+                elif action == "delete":
+                    alert_id = int(body.get("id", 0))
+                    ok = delete_alert(alert_id)
+                    self._send_json({"ok": ok})
+                elif action == "toggle":
+                    alert_id = int(body.get("id", 0))
+                    enabled = body.get("enabled")
+                    ok = toggle_alert(alert_id, enabled)
+                    self._send_json({"ok": ok})
+                elif action == "check":
+                    triggered = check_alerts()
+                    self._send_json({"triggered": triggered, "count": len(triggered)})
+                elif action == "list":
+                    sym = body.get("symbol")
+                    self._send_json({"alerts": list_alerts(symbol=sym)})
+                elif action == "types":
+                    self._send_json({"types": CONDITION_TYPES})
+                else:
+                    self._send_error_json("Unknown action: " + action, 400)
             except Exception as e:
                 self._send_error_json(str(e))
             return

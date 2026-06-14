@@ -309,6 +309,8 @@ a { color:inherit; text-decoration:none; }
 }
 .btn-secondary:hover { background:var(--bg-hover-strong); border-color:var(--accent); }
 
+.btn-sm { padding:5px 12px; font-size:12px; }
+
 /* Pages */
 .page-view { display:none; }
 .page-view.active { display:block; }
@@ -628,7 +630,7 @@ a { color:inherit; text-decoration:none; }
   <!-- ====== SIDEBAR ====== -->
   <aside class="app-sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div><span class="logo-text">Alphalith</span><span class="logo-sub">v0.2.1</span></div>
+      <div><span class="logo-text">Alphalith</span><span class="logo-sub">v0.3.0</span></div>
     </div>
     <nav class="sidebar-menu-wrap" id="sidebarMenu">
       <div class="menu-item active" data-page="research">
@@ -654,6 +656,23 @@ a { color:inherit; text-decoration:none; }
         <span class="menu-label">对比分析</span>
       </div>
       <div class="menu-divider"></div>
+      <div class="menu-item" data-page="watchlist">
+        <span class="menu-icon">⭐</span>
+        <span class="menu-label">自选股</span>
+      </div>
+      <div class="menu-item" data-page="portfolio">
+        <span class="menu-icon">💼</span>
+        <span class="menu-label">持仓追踪</span>
+      </div>
+      <div class="menu-item" data-page="sentiment">
+        <span class="menu-icon">📰</span>
+        <span class="menu-label">舆情分析</span>
+      </div>
+      <div class="menu-item" data-page="alerts">
+        <span class="menu-icon">🔔</span>
+        <span class="menu-label">预警通知</span>
+      </div>
+      <div class="menu-divider"></div>
       <div class="menu-item" data-page="settings">
         <span class="menu-icon">⚙️</span>
         <span class="menu-label">系统配置</span>
@@ -667,7 +686,7 @@ a { color:inherit; text-decoration:none; }
           <div class="user-status" id="userStatus">● 请先登录</div>
         </div>
       </div>
-      <div class="version">Alphalith v0.2.1 · AI 投研引擎</div>
+      <div class="version">Alphalith v0.3.0 · AI 投研引擎</div>
     </div>
   </aside>
 
@@ -786,6 +805,110 @@ a { color:inherit; text-decoration:none; }
     <div class="empty-state">
       <p>输入要监控的标的，点击「生成面板」</p>
     </div>
+  </div>
+</div>
+
+<!-- ====== 自选股 / 观察列表 ====== -->
+<div class="page-view fade-in" id="page-watchlist">
+  <div class="page-header">
+    <h2>⭐ 自选股</h2>
+    <p>管理你的观察列表，实时行情一目了然</p>
+  </div>
+  <div class="action-bar">
+    <label>列表</label>
+    <select class="action-select" id="wlListSelect" onchange="selectWatchlist(this.value)"><option value="0">— 加载中 —</option></select>
+    <button class="btn-secondary btn-sm" onclick="showWlCreate()">+ 新建列表</button>
+    <button class="btn-secondary btn-sm" onclick="deleteWatchlist()" style="color:var(--red)" title="删除当前列表">🗑 删除</button>
+    <label>添加标的</label>
+    <input type="text" class="action-input" id="wlNewSymbol" placeholder="600519 / AAPL" style="width:140px">
+    <button class="btn-primary btn-sm" onclick="addToWatchlist()">＋ 添加</button>
+    <button class="btn-primary btn-sm" onclick="loadWatchlist()">🔄 刷新行情</button>
+  </div>
+  <div id="wlCreateBox" style="display:none;margin:8px 0;padding:8px 14px;background:var(--bg-card);border-radius:8px">
+    <input type="text" id="wlNewListName" placeholder="新列表名称" style="width:160px">
+    <button class="btn-primary btn-sm" onclick="createWatchlist()">确认</button>
+    <button class="btn-secondary btn-sm" onclick="showWlCreate()">取消</button>
+  </div>
+  <div class="result-area" id="watchlistResult">
+    <div class="empty-state"><p>点击「＋ 新建列表」开始</p></div>
+  </div>
+</div>
+
+<!-- ====== 持仓追踪 ====== -->
+<div class="page-view fade-in" id="page-portfolio">
+  <div class="page-header">
+    <h2>💼 持仓追踪</h2>
+    <p>记录实际持仓，自动计算实时盈亏</p>
+  </div>
+  <div class="action-bar">
+    <label>标的</label>
+    <input type="text" class="action-input" id="pfSymbol" placeholder="600519 / AAPL" style="width:140px">
+    <label>成本价</label>
+    <input type="number" class="action-input" id="pfEntryPrice" placeholder="0.00" style="width:100px" step="0.01">
+    <label>数量(股)</label>
+    <input type="number" class="action-input" id="pfQty" placeholder="100" style="width:80px">
+    <label>日期</label>
+    <input type="text" class="action-input" id="pfDate" placeholder="2025-01-01" style="width:110px">
+    <button class="btn-primary" onclick="addPortfolio()">＋ 添加持仓</button>
+    <button class="btn-secondary" onclick="loadPortfolio()">🔄 刷新</button>
+  </div>
+  <!-- 汇总卡片 -->
+  <div class="stats-grid" id="portfolioStats" style="display:none">
+    <div class="stat-card"><div class="stat-title">持仓数</div><div class="stat-value" id="pfCount">0</div></div>
+    <div class="stat-card"><div class="stat-title">总成本</div><div class="stat-value" id="pfCost">¥0</div></div>
+    <div class="stat-card"><div class="stat-title">总市值</div><div class="stat-value" id="pfValue">¥0</div></div>
+    <div class="stat-card"><div class="stat-title">总盈亏</div><div class="stat-value" id="pfPnl">¥0</div></div>
+  </div>
+  <div class="result-area" id="portfolioResult">
+    <div class="empty-state"><p>暂无持仓记录</p></div>
+  </div>
+</div>
+
+<!-- ====== 舆情情绪分析 ====== -->
+<div class="page-view fade-in" id="page-sentiment">
+  <div class="page-header">
+    <h2>📰 舆情情绪分析</h2>
+    <p>抓取财经新闻 + LLM 情绪打分，洞察市场舆论风向</p>
+  </div>
+  <div class="action-bar">
+    <label>标的</label>
+    <input type="text" class="action-input" id="sentSymbol" placeholder="600519 / 茅台 / AAPL" style="width:180px"
+      onblur="validateSymbol(this, document.getElementById('sentSymbolStatus'))">
+    <span id="sentSymbolStatus" class="symbol-status"></span>
+    <button class="btn-primary" onclick="runSentiment()">▶ 分析舆情</button>
+  </div>
+  <div id="sentProgress" style="display:none"></div>
+  <div class="result-area" id="sentimentResult">
+    <div class="empty-state">
+      <svg viewBox="0 0 64 64" fill="none"><circle cx="28" cy="24" r="10" stroke="currentColor" stroke-width="2"/><path d="M38 48L26 36L20 44L8 28" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <p>输入标的查看市场舆情</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 预警通知 ====== -->
+<div class="page-view fade-in" id="page-alerts">
+  <div class="page-header">
+    <h2>🔔 预警通知</h2>
+    <p>设置价格/涨跌幅预警条件，触发时自动通知</p>
+  </div>
+  <div class="action-bar">
+    <label>标的</label>
+    <input type="text" class="action-input" id="alertSymbol" placeholder="600519 / AAPL" style="width:140px"
+      onblur="validateSymbol(this, document.getElementById('alertSymbolStatus'))">
+    <span id="alertSymbolStatus" class="symbol-status"></span>
+    <label>条件</label>
+    <select class="action-select" id="alertType">
+      <option value="">— 选择条件 —</option>
+    </select>
+    <label>阈值</label>
+    <input type="number" class="action-input" id="alertThreshold" placeholder="0" style="width:80px" step="0.01">
+    <button class="btn-primary" onclick="addAlert()">＋ 添加预警</button>
+    <button class="btn-primary" onclick="checkAlerts()">🔍 立即检查</button>
+  </div>
+  <div id="alertTriggered" style="display:none;margin:10px 0"></div>
+  <div class="result-area" id="alertResult">
+    <div class="empty-state"><p>暂无预警规则</p></div>
   </div>
 </div>
 
@@ -919,6 +1042,41 @@ a { color:inherit; text-decoration:none; }
         </div>
       </div>
       <div class="setting-group">
+        <div class="setting-group-title">📰 舆情数据源</div>
+        <div class="setting-row">
+          <div><div class="setting-label">启用数据源</div><div class="setting-desc">勾选后舆情分析将从对应平台抓取信息</div></div>
+          <div class="setting-control" style="flex:1">
+            <div id="sentSrcChecks" style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px">
+              <span style="color:var(--text-secondary)">加载中...</span>
+            </div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">优先级排序</div><div class="setting-desc">拖拽或调整优先级（代码逗号分隔）</div></div>
+          <div class="setting-control"><input class="setting-input" id="setSentOrder" placeholder="googlenews, yahoo, eastmoney, finviz, stocktwits, sina" style="max-width:520px"></div>
+        </div>
+        <div class="setting-row">
+          <div style="flex:1"><div class="setting-label">🔧 自定义舆情源</div><div class="setting-desc">添加第三方 RSS/API/抓取源，支持 {symbol} {name} 占位符</div></div>
+        </div>
+        <div class="setting-row" style="flex-wrap:wrap;gap:6px">
+          <input class="setting-input" id="custSentCode" placeholder="代码(slug)" style="width:100px">
+          <input class="setting-input" id="custSentName" placeholder="名称" style="width:100px">
+          <select id="custSentType" class="setting-input" style="width:110px;cursor:pointer">
+            <option value="rss">RSS/XML</option>
+            <option value="json_api">JSON API</option>
+            <option value="html_scrape">HTML 抓取</option>
+          </select>
+          <input class="setting-input" id="custSentUrl" placeholder="URL (支持 {symbol} {name})" style="flex:1;min-width:280px">
+          <button class="btn-primary btn-sm" onclick="addCustomSentSource()" style="white-space:nowrap">+ 添加</button>
+        </div>
+        <div class="setting-row" style="flex-wrap:wrap;gap:6px;padding-top:0">
+          <input class="setting-input" id="custSentPath" placeholder="JSON路径/正则 (选填)" style="flex:1;min-width:180px">
+          <input class="setting-input" id="custSentField" placeholder="字段名 (默认title)" style="width:140px">
+          <input class="setting-input" id="custSentCoverage" placeholder="覆盖范围 (如:美股)" style="width:140px">
+        </div>
+        <div id="custSentList" style="font-size:11px;color:var(--text-secondary);margin:4px 0"></div>
+      </div>
+      <div class="setting-group">
         <div class="setting-group-title">回测默认参数</div>
         <div class="setting-row">
           <div><div class="setting-label">默认回测天数</div></div>
@@ -1020,7 +1178,9 @@ const S = {
 
 const pageTitles = {
   research:'投研分析', backtest:'策略回测', dashboard:'投研面板',
-  history:'决策历史', compare:'对比分析', settings:'系统配置'
+  history:'决策历史', compare:'对比分析', watchlist:'自选股',
+  portfolio:'持仓追踪', sentiment:'舆情分析', alerts:'预警通知',
+  settings:'系统配置'
 };
 
 // ============================================================
@@ -1038,6 +1198,10 @@ function switchPage(page) {
   // Auto-load data on page entry
   if (page === 'history') loadHistory();
   if (page === 'settings') loadSettings();
+  if (page === 'watchlist') loadWatchlist();
+  if (page === 'portfolio') loadPortfolio();
+  if (page === 'alerts') loadAlerts();
+  if (page === 'dashboard') checkAlertsSilent();
   setTimeout(disposeCharts, 50);
   // Format hint for symbol inputs
 
@@ -1130,12 +1294,19 @@ async function sendMessage() {
 // ============================================================
 // API HELPERS
 // ============================================================
-async function api(path, body) {
-  const res = await fetch(path, {
-    method: 'POST',
+async function api(path, body, method) {
+  const opts = {
+    method: method || 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(body),
-  });
+  };
+  if (body && opts.method !== 'GET') {
+    opts.body = JSON.stringify(body);
+  } else if (body && opts.method === 'GET') {
+    // Convert body to query string for GET
+    const qs = new URLSearchParams(body).toString();
+    if (qs) path += '?' + qs;
+  }
+  const res = await fetch(path, opts);
   if (!res.ok) throw new Error('HTTP '+res.status);
   return res.json();
 }
@@ -2003,6 +2174,8 @@ async function saveSettings() {
       data_source: document.getElementById('setDataSource').value,
       data_source_order: document.getElementById('setDataOrder').value.trim().split(/[,，\s]+/).filter(Boolean),
       custom_sources: _customSources,
+      sentiment_sources: getSentSourcesEnabled(),
+      sentiment_source_order: document.getElementById('setSentOrder').value.trim().split(/[,，\s]+/).filter(Boolean),
     };
     
     await api('/api/config', config);
@@ -2054,6 +2227,10 @@ async function loadSettings() {
     _customSources = cfg.custom_sources || {};
     refreshSourceDropdown();
     renderCustomSources();
+    
+    // 恢复舆情数据源
+    loadSentSources(cfg);
+    loadCustomSentSources();
   } catch (e) { /* ignore */ }
 }
 
@@ -2129,6 +2306,148 @@ function renderCustomSources() {
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;margin:3px 0;background:var(--bg-raised);border-radius:4px">' +
       '<span><b>' + (s.name || '') + '</b> <code style="font-size:10px">' + code + '</code> — <span style="font-size:10px;color:var(--text-secondary)">' + (s.url || '') + '</span></span>' +
       '<span onclick="removeCustomSource(\'' + code + '\')" style="cursor:pointer;color:var(--danger);font-size:14px;padding:0 4px" title="删除">✕</span>' +
+      '</div>';
+  }).join('');
+}
+
+// ============================================================
+// 舆情数据源配置
+// ============================================================
+var _sentSources = {};  // {code: {name, icon, color, desc, coverage}}
+
+async function loadSentSources(savedCfg) {
+  try {
+    const data = await apiGet('/api/sentiment/sources');
+    _sentSources = data.sources || {};
+    
+    var div = document.getElementById('sentSrcChecks');
+    var enabled = (savedCfg && savedCfg.sentiment_sources) || data.enabled || [];
+    var order = (savedCfg && savedCfg.sentiment_source_order) || data.order || [];
+    
+    var html = '';
+    for (var code of order) {
+      var meta = _sentSources[code];
+      if (!meta) continue;
+      var checked = enabled.includes(code) ? ' checked' : '';
+      html += '<label style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:var(--bg-raised);border-radius:6px;cursor:pointer;border:1px solid ' + (checked ? meta.color : 'var(--border)') + ';opacity:' + (checked ? '1' : '0.5') + '">' +
+        '<input type="checkbox" value="' + code + '"' + checked + ' onchange="onSentSrcToggle(this)" style="accent-color:' + meta.color + '">' +
+        '<span>' + (meta.icon||'') + '</span><span>' + meta.name + '</span>' +
+        '<span style="font-size:9px;color:var(--text-tertiary)" title="' + (meta.desc||'') + '">' + (meta.coverage||'') + '</span>' +
+        '</label>';
+    }
+    div.innerHTML = html || '<span style="color:var(--text-secondary)">无可用数据源</span>';
+    
+    document.getElementById('setSentOrder').value = order.join(', ');
+  } catch(e) {
+    document.getElementById('sentSrcChecks').innerHTML = '<span style="color:var(--red)">加载失败</span>';
+  }
+}
+
+function onSentSrcToggle(cb) {
+  // Visual feedback only — actual data saved via getSentSourcesEnabled()
+  var label = cb.parentElement;
+  label.style.opacity = cb.checked ? '1' : '0.5';
+  label.style.borderColor = cb.checked ? (_sentSources[cb.value]?.color || 'var(--accent)') : 'var(--border)';
+}
+
+function getSentSourcesEnabled() {
+  var checks = document.querySelectorAll('#sentSrcChecks input[type="checkbox"]');
+  var enabled = [];
+  checks.forEach(function(cb) { if (cb.checked) enabled.push(cb.value); });
+  return enabled;
+}
+
+// ============================================================
+// 自定义舆情数据源管理
+// ============================================================
+var _customSentSources = {};  // {code: {name, url, type, ...}}
+
+async function loadCustomSentSources() {
+  try {
+    const data = await apiGet('/api/sentiment/sources/custom');
+    _customSentSources = data.sources || {};
+    renderCustomSentSources();
+  } catch(e) {
+    _customSentSources = {};
+    renderCustomSentSources();
+  }
+}
+
+async function addCustomSentSource() {
+  var code = document.getElementById('custSentCode').value.trim();
+  var name = document.getElementById('custSentName').value.trim();
+  var type = document.getElementById('custSentType').value;
+  var url = document.getElementById('custSentUrl').value.trim();
+  var path = document.getElementById('custSentPath').value.trim();
+  var field = document.getElementById('custSentField').value.trim() || 'title';
+  var coverage = document.getElementById('custSentCoverage').value.trim() || '自定义';
+
+  if (!code || !name || !url) {
+    alert('代码、名称、URL 均不能为空');
+    return;
+  }
+  if (!/^[a-z][a-z0-9_]*$/.test(code)) {
+    alert('代码只能包含小写字母、数字和下划线，且以字母开头');
+    return;
+  }
+
+  try {
+    var resp = await api('/api/sentiment/sources/custom', {
+      action: 'add',
+      code: code, name: name, type: type, url: url,
+      item_path: path, field: field,
+      desc: name + ' 自定义源', coverage: coverage
+    }, 'POST');
+    if (resp.error) { alert(resp.error); return; }
+    _customSentSources[code] = resp.source;
+    // 清空输入
+    document.getElementById('custSentCode').value = '';
+    document.getElementById('custSentName').value = '';
+    document.getElementById('custSentUrl').value = '';
+    document.getElementById('custSentPath').value = '';
+    document.getElementById('custSentField').value = '';
+    document.getElementById('custSentCoverage').value = '';
+    renderCustomSentSources();
+    // 刷新数据源checkbox列表
+    loadSentSources(G.currentConfig);
+    addMsg('✅ 已添加自定义舆情源: ' + name + ' (' + code + ')', 'alphalith');
+  } catch(e) {
+    alert('添加失败: ' + e.message);
+  }
+}
+
+async function removeCustomSentSource(code) {
+  var info = _customSentSources[code];
+  var label = (info && info.name) || code;
+  if (!confirm('确定删除自定义舆情源 "' + label + '" 吗？')) return;
+  try {
+    await api('/api/sentiment/sources/custom', { action: 'remove', code: code }, 'POST');
+    delete _customSentSources[code];
+    renderCustomSentSources();
+    loadSentSources(G.currentConfig);
+    addMsg('🗑 已删除舆情源: ' + label, 'alphalith');
+  } catch(e) {
+    alert('删除失败: ' + e.message);
+  }
+}
+
+function renderCustomSentSources() {
+  var container = document.getElementById('custSentList');
+  if (!container) return;
+  var keys = Object.keys(_customSentSources);
+  if (!keys.length) {
+    container.innerHTML = '<span style="color:var(--text-muted)">暂无自定义舆情源，在上方输入URL添加</span>';
+    return;
+  }
+  var typeIcons = { rss: '📡', json_api: '📊', html_scrape: '🌐' };
+  container.innerHTML = keys.map(function(code) {
+    var s = _customSentSources[code];
+    var ticon = typeIcons[s.type] || '🔧';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;margin:3px 0;background:var(--bg-raised);border-radius:4px;border-left:3px solid var(--accent)">' +
+      '<span>' + ticon + ' <b>' + (s.name || '') + '</b> <code style="font-size:9px;color:var(--text-secondary)">' + code + '</code>' +
+      ' <span style="font-size:9px;color:var(--text-tertiary)">' + (s.coverage || '') + '</span>' +
+      ' <span style="font-size:9px;color:var(--text-muted)">' + (s.url || '').substring(0, 50) + '</span></span>' +
+      '<span onclick="removeCustomSentSource(\'' + code + '\')" style="cursor:pointer;color:var(--danger);font-size:14px;padding:0 4px" title="删除">✕</span>' +
       '</div>';
   }).join('');
 }
@@ -2538,9 +2857,356 @@ function closeAccountMenu() {
   // Initial badge load
   updateBadges();
 
+  // Request notification permission
+  if (Notification && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
   // Check auth state — show login modal if not logged in
   checkAuth();
 })();
+
+// ====== 自选股 / Watchlist ======
+let WATCHLIST_ID = 0;
+
+async function loadWatchlist() {
+  try {
+    const ldata = await api('/api/watchlist/lists', {}, 'GET');
+    const lists = ldata.lists || [];
+    const sel = document.getElementById('wlListSelect');
+    sel.innerHTML = lists.map(l => `<option value="${l.id}">${escHtml(l.name)}</option>`).join('');
+    if (lists.length === 0) {
+      sel.innerHTML = '<option value="0">— 无列表 —</option>';
+      WATCHLIST_ID = 0;
+    } else {
+      WATCHLIST_ID = lists[0].id;
+      sel.value = WATCHLIST_ID;
+    }
+    if (WATCHLIST_ID > 0) renderWatchlist();
+  } catch(e) {
+    document.getElementById('watchlistResult').innerHTML = `<div class="empty-state"><p style="color:var(--red);">加载失败: ${escHtml(e.message)}</p></div>`;
+  }
+}
+
+async function renderWatchlist() {
+  if (!WATCHLIST_ID) return;
+  try {
+    const data = await api('/api/watchlist/items', { list_id: WATCHLIST_ID, quotes: '1' }, 'GET');
+    const items = data.items || [];
+    const div = document.getElementById('watchlistResult');
+    if (items.length === 0) {
+      div.innerHTML = '<div class="empty-state"><p>列表为空，添加上方标的</p></div>';
+      return;
+    }
+    let html = '<table class="data-table" style="width:100%"><thead><tr><th>标的</th><th>名称</th><th>现价</th><th>涨跌幅</th><th>操作</th></tr></thead><tbody>';
+    items.forEach(it => {
+      const changeCls = (it.change_pct || 0) >= 0 ? 'green' : 'red';
+      html += `<tr>
+        <td><strong>${escHtml(it.symbol)}</strong></td>
+        <td>${escHtml(it.name||'-')}</td>
+        <td>${it.price ? it.price.toFixed(2) : '-'}</td>
+        <td class="${changeCls}">${it.change_pct ? (it.change_pct>0?'+':'')+it.change_pct.toFixed(2)+'%' : '-'}</td>
+        <td><button class="btn-secondary btn-sm" onclick="removeFromWatchlist(${it.id},'${escHtml(it.symbol)}')">✕</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    html += '<div style="font-size:10px;color:var(--text-tertiary);margin-top:6px">💡 数据来源: ' + (items[0]?.source || 'n/a') + '</div>';
+    div.innerHTML = html;
+  } catch(e) {
+    document.getElementById('watchlistResult').innerHTML = `<div class="empty-state"><p style="color:var(--red);">渲染失败: ${escHtml(e.message)}</p></div>`;
+  }
+}
+
+function selectWatchlist(id) { WATCHLIST_ID = parseInt(id); renderWatchlist(); }
+
+async function deleteWatchlist() {
+  if (!WATCHLIST_ID) return addMsg('⚠️ 请先选择要删除的列表', 'alphalith');
+  const sel = document.getElementById('wlListSelect');
+  const name = sel.options[sel.selectedIndex]?.text || '未知';
+  if (!confirm('确定删除列表「' + name + '」？\n\n此操作不可撤销，列表内的自选股将一并删除。')) return;
+  try {
+    await api('/api/watchlist/lists', { action:'delete', list_id: WATCHLIST_ID }, 'POST');
+    addMsg('🗑 列表「' + name + '」已删除', 'assistant');
+    WATCHLIST_ID = 0;
+    loadWatchlist();
+  } catch(e) {
+    addMsg('❌ 删除失败: ' + e.message, 'error');
+  }
+}
+
+function showWlCreate() {
+  const box = document.getElementById('wlCreateBox');
+  box.style.display = box.style.display === 'none' ? '' : 'none';
+}
+
+async function createWatchlist() {
+  const name = document.getElementById('wlNewListName').value.trim();
+  if (!name) return;
+  await api('/api/watchlist/lists', { action:'create', name });
+  document.getElementById('wlNewListName').value = '';
+  showWlCreate();
+  loadWatchlist();
+  addMsg('✅ 列表「' + name + '」已创建', 'assistant');
+}
+
+async function addToWatchlist() {
+  const sym = document.getElementById('wlNewSymbol').value.trim();
+  if (!sym || !WATCHLIST_ID) return;
+  await api('/api/watchlist/items', { action:'add', list_id: WATCHLIST_ID, symbol: sym });
+  document.getElementById('wlNewSymbol').value = '';
+  renderWatchlist();
+  addMsg('✅ ' + sym + ' 已加入自选', 'assistant');
+}
+
+async function removeFromWatchlist(id, sym) {
+  await api('/api/watchlist/items', { action:'remove', item_id: id });
+  renderWatchlist();
+  addMsg('✕ ' + sym + ' 已移出自选', 'assistant');
+}
+
+// ====== 持仓追踪 / Portfolio ======
+async function loadPortfolio() {
+  try {
+    const data = await api('/api/portfolio/summary', {}, 'GET');
+    if (data.error) throw new Error(data.error);
+    document.getElementById('pfCount').textContent = data.count || 0;
+    document.getElementById('pfCost').textContent = '¥' + (data.total_cost||0).toLocaleString();
+    document.getElementById('pfValue').textContent = '¥' + (data.total_value||0).toLocaleString();
+    const pnl = data.total_pnl || 0;
+    const pnlEl = document.getElementById('pfPnl');
+    pnlEl.textContent = (pnl>=0?'+':'') + '¥' + pnl.toLocaleString() + ' (' + (data.total_pnl_pct>=0?'+':'') + (data.total_pnl_pct||0).toFixed(2) + '%)';
+    pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('portfolioStats').style.display = '';
+
+    const positions = data.positions || [];
+    const div = document.getElementById('portfolioResult');
+    if (positions.length === 0) {
+      div.innerHTML = '<div class="empty-state"><p>暂无持仓记录</p></div>';
+      return;
+    }
+    let html = '<table class="data-table" style="width:100%"><thead><tr><th>标的</th><th>成本价</th><th>现价</th><th>数量</th><th>市值</th><th>盈亏</th><th>操作</th></tr></thead><tbody>';
+    positions.forEach(p => {
+      const pnlCls = (p.pnl||0) >= 0 ? 'green' : 'red';
+      html += `<tr>
+        <td><strong>${escHtml(p.symbol)}</strong><br><span style="font-size:10px;color:var(--text-tertiary)">${escHtml(p.name||'')}</span></td>
+        <td>¥${(p.entry_price||0).toFixed(2)}</td>
+        <td>¥${(p.current_price||0).toFixed(2)}</td>
+        <td>${p.quantity||0}</td>
+        <td>¥${(p.market_value||0).toLocaleString()}</td>
+        <td class="${pnlCls}">${(p.pnl>=0?'+':'')}¥${(p.pnl||0).toLocaleString()}<br><span style="font-size:10px">${(p.pnl_pct>=0?'+':'')}${(p.pnl_pct||0).toFixed(2)}%</span></td>
+        <td><button class="btn-secondary btn-sm" onclick="removePortfolio(${p.id})">✕</button></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    html += '<div style="font-size:10px;color:var(--text-tertiary);margin-top:6px">💡 数据来源: ' + (positions[0]?.source || 'n/a') + '</div>';
+    div.innerHTML = html;
+  } catch(e) {
+    document.getElementById('portfolioResult').innerHTML = `<div class="empty-state"><p style="color:var(--red);">加载失败: ${escHtml(e.message)}</p></div>`;
+  }
+}
+
+async function addPortfolio() {
+  const symbol = document.getElementById('pfSymbol').value.trim();
+  const entry_price = parseFloat(document.getElementById('pfEntryPrice').value);
+  const quantity = parseFloat(document.getElementById('pfQty').value);
+  const entry_date = document.getElementById('pfDate').value.trim();
+  if (!symbol || !entry_price || !quantity) return;
+  await api('/api/portfolio', { action:'add', symbol, entry_price, quantity, entry_date });
+  document.getElementById('pfSymbol').value = '';
+  document.getElementById('pfEntryPrice').value = '';
+  document.getElementById('pfQty').value = '';
+  document.getElementById('pfDate').value = '';
+  loadPortfolio();
+  addMsg('✅ ' + symbol + ' 持仓已添加', 'assistant');
+}
+
+async function removePortfolio(id) {
+  await api('/api/portfolio', { action:'remove', id });
+  loadPortfolio();
+  addMsg('✕ 持仓已删除', 'assistant');
+}
+
+// ====== 舆情分析 / Sentiment ======
+async function runSentiment() {
+  const symbol = document.getElementById('sentSymbol').value.trim();
+  if (!symbol) return;
+  addMsg('📰 舆情分析: ' + symbol + ' — 正在从多源抓取数据...', 'alphalith');
+  showProgress('sentimentResult', 15, '🌐 Google News + 📊 Yahoo + 📈 Finviz + 💬 StockTwits + 📰 东财...');
+  
+  try {
+    const data = await api('/api/sentiment', { symbol }, 'POST');
+    hideProgress('sentimentResult');
+    document.getElementById('sentimentResult').style.display = '';
+    const overall = data.overall_sentiment;
+    const score = data.overall_score;
+    const emoji = overall === 'bullish' ? '🐂' : overall === 'bearish' ? '🐻' : '😐';
+    const label = overall === 'bullish' ? '偏多' : overall === 'bearish' ? '偏空' : '中性';
+    const bgColor = overall === 'bullish' ? 'rgba(16,185,129,0.1)' : overall === 'bearish' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)';
+    const textColor = overall === 'bullish' ? 'var(--green)' : overall === 'bearish' ? 'var(--red)' : 'var(--amber)';
+
+    // 来源标签映射 (6个数据源)
+    const srcLabels = { googlenews:'🌐Google', yahoo:'📊Yahoo', finviz:'📈Finviz', stocktwits:'💬StockTwits', eastmoney:'📰东财', sina:'📡新浪' };
+    const srcColors = { googlenews:'#4285F4', yahoo:'#6001D2', finviz:'#e74c3c', stocktwits:'#1da1f2', eastmoney:'#e4393c', sina:'#f39c12' };
+
+    // 来源统计条
+    const srcStats = data.source_stats || {};
+    let srcBar = '';
+    const totalItems = Object.values(srcStats).reduce((a,b)=>a+b,0);
+    if (totalItems > 0) {
+      Object.entries(srcStats).forEach(([src, cnt]) => {
+        const w = (cnt/totalItems*100).toFixed(0);
+        srcBar += `<span style="display:inline-block;width:${w}%;background:${srcColors[src]||'#888'};height:6px" title="${srcLabels[src]||src}: ${cnt}条"></span>`;
+      });
+    }
+
+    let html = `<div style="padding:16px;background:${bgColor};border-radius:10px;margin-bottom:14px">
+      <div style="font-size:28px">${emoji} ${label} · 情绪指数 ${score}/100</div>
+      <div style="margin-top:8px;color:var(--text-secondary);font-size:13px">置信度: ${(data.confidence*100).toFixed(0)}% ｜ ${escHtml(data.name||data.symbol)}</div>
+      <div style="margin-top:6px;color:var(--text-primary);font-size:14px">${escHtml(data.summary||'')}</div>
+      <div style="margin-top:10px;display:flex;border-radius:3px;overflow:hidden">${srcBar}</div>
+      <div style="margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--text-tertiary)">
+        ${Object.entries(srcStats).map(([src,cnt]) => `<span style="color:${srcColors[src]||'#888'}">${srcLabels[src]||src} ${cnt}条</span>`).join('')}
+      </div>
+    </div>`;
+
+    const headlines = data.headlines || [];
+    if (headlines.length > 0) {
+      html += '<div class="card"><div class="card-header"><h3>📋 多源舆情分析</h3></div><div class="card-body">';
+      headlines.forEach(h => {
+        const hem = h.sentiment === 'bullish' ? '🟢' : h.sentiment === 'bearish' ? '🔴' : '🟡';
+        const srcTag = srcLabels[h.source] ? `<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:${srcColors[h.source]||'#888'}22;color:${srcColors[h.source]||'#888'};margin-right:4px">${srcLabels[h.source]}</span>` : '';
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-light)">
+          <span>${hem}</span>
+          <span style="flex:1;font-size:13px">${srcTag}${escHtml(h.title)}</span>
+          <span style="font-size:11px;color:var(--text-tertiary)">${h.score}</span>
+        </div>`;
+      });
+      html += '</div></div>';
+    }
+
+    document.getElementById('sentimentResult').innerHTML = html;
+    addMsg('✅ 舆情分析完成: ' + label + ' (' + score + '/100)', 'assistant');
+  } catch(e) {
+    hideProgress('sentimentResult');
+    document.getElementById('sentimentResult').innerHTML = `<div class="empty-state"><p style="color:var(--red);">分析失败: ${escHtml(e.message)}</p></div>`;
+    addMsg('❌ 舆情分析失败: ' + e.message, 'error');
+  }
+}
+
+// ====== 预警通知 / Alerts ======
+async function loadAlerts() {
+  // Load condition types
+  try {
+    const data = await api('/api/alerts', { action:'types' }, 'POST');
+    const types = data.types || {};
+    const sel = document.getElementById('alertType');
+    sel.innerHTML = '<option value="">— 选择条件 —</option>' +
+      Object.entries(types).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
+  } catch(e) { /* ignore */ }
+
+  renderAlerts();
+}
+
+async function renderAlerts() {
+  try {
+    const data = await api('/api/alerts', { action:'list' }, 'POST');
+    const alerts = data.alerts || [];
+    const div = document.getElementById('alertResult');
+    if (alerts.length === 0) {
+      div.innerHTML = '<div class="empty-state"><p>暂无预警规则</p></div>';
+      return;
+    }
+    const typeLabels = {};
+    try {
+      const td = await api('/api/alerts', { action:'types' }, 'POST');
+      Object.assign(typeLabels, td.types || {});
+    } catch(e) {}
+
+    let html = '<table class="data-table" style="width:100%"><thead><tr><th>标的</th><th>条件</th><th>阈值</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+    alerts.forEach(a => {
+      html += `<tr>
+        <td><strong>${escHtml(a.symbol)}</strong><br><span style="font-size:10px;color:var(--text-tertiary)">${escHtml(a.name||'')}</span></td>
+        <td>${typeLabels[a.condition_type] || a.condition_type}</td>
+        <td>${a.threshold}</td>
+        <td><span style="color:${a.enabled?'var(--green)':'var(--text-disabled)'}">${a.enabled?'● 启用':'○ 停用'}</span></td>
+        <td>
+          <button class="btn-secondary btn-sm" onclick="toggleAlert(${a.id})">${a.enabled?'停用':'启用'}</button>
+          <button class="btn-secondary btn-sm" onclick="removeAlert(${a.id})">✕</button>
+        </td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    div.innerHTML = html;
+  } catch(e) {
+    document.getElementById('alertResult').innerHTML = `<div class="empty-state"><p style="color:var(--red);">加载失败</p></div>`;
+  }
+}
+
+async function addAlert() {
+  const symbol = document.getElementById('alertSymbol').value.trim();
+  const condition_type = document.getElementById('alertType').value;
+  const threshold = parseFloat(document.getElementById('alertThreshold').value);
+  if (!symbol || !condition_type || isNaN(threshold)) return;
+  await api('/api/alerts', { action:'create', symbol, condition_type, threshold });
+  document.getElementById('alertSymbol').value = '';
+  document.getElementById('alertThreshold').value = '';
+  renderAlerts();
+  addMsg('🔔 预警已添加: ' + symbol + ' ' + condition_type + ' ' + threshold, 'assistant');
+}
+
+async function toggleAlert(id) {
+  await api('/api/alerts', { action:'toggle', id });
+  renderAlerts();
+}
+
+async function removeAlert(id) {
+  await api('/api/alerts', { action:'delete', id });
+  renderAlerts();
+  addMsg('✕ 预警已删除', 'assistant');
+}
+
+async function checkAlerts() {
+  addMsg('🔍 正在检查预警条件...', 'alphalith');
+  await _doCheckAlerts(true);
+}
+
+async function checkAlertsSilent() {
+  await _doCheckAlerts(false);
+}
+
+async function _doCheckAlerts(showMsg) {
+  try {
+    const data = await api('/api/alerts', { action:'check' }, 'POST');
+    const triggered = data.triggered || [];
+    const box = document.getElementById('alertTriggered');
+    if (triggered.length === 0) {
+      if (showMsg) addMsg('✅ 所有预警正常，无触发', 'assistant');
+      box.style.display = 'none';
+    } else {
+      box.style.display = '';
+      let html = '<div class="card" style="border-color:var(--amber)"><div class="card-header"><h3 style="color:var(--amber)">🚨 预警触发 (' + triggered.length + '条)</h3></div><div class="card-body">';
+      triggered.forEach(t => {
+        html += `<div style="padding:6px 0;border-bottom:1px solid var(--border-light);font-size:13px">
+          <strong>${escHtml(t.symbol)}</strong> ${escHtml(t.name||'')} · 现价 ${(t.current_price||0).toFixed(2)} · 条件: ${t.condition_type} ${t.threshold}
+        </div>`;
+      });
+      html += '</div></div>';
+      box.innerHTML = html;
+      if (showMsg) addMsg('🚨 ' + triggered.length + ' 条预警触发!', 'alphalith');
+      // 浏览器通知
+      if (Notification && Notification.permission === 'granted') {
+        triggered.forEach(t => {
+          new Notification('Alphalith 预警', {
+            body: t.symbol + ' ' + t.name + ': ' + t.condition_type + ' ' + t.threshold + ' (现价' + t.current_price + ')',
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>'
+          });
+        });
+      }
+    }
+  } catch(e) {
+    if (showMsg) addMsg('❌ 预警检查失败: ' + e.message, 'error');
+  }
+}
 </script>
 </body>
 </html>
