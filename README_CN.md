@@ -21,7 +21,7 @@
 
 > **项目名来源**: *Alphalith* = **Alpha**（超额收益）+ **Lith**（古希腊语 λίθος，"立石 / bedrock"）→ "封存于立石的 Alpha 决策"，与文末铭文 *Sealed in the Bedrock* 呼应。中文名"慧投"= 慧眼投研。
 
-> **v0.2.1** · 一个轻量、零外部依赖的多智能体 AI 投研引擎，原生支持 **A 股 / 港股 / 美股**。
+> 一个轻量、零外部依赖的多智能体 AI 投研引擎，原生支持 **A 股 / 港股 / 美股**。
 
 > 对冲基金有分析师团队，**现在你也有了。**
 
@@ -113,63 +113,6 @@ alphalith gui --port 28080   # 自定义端口
 
 ---
 
-## 🚀 30 秒上手
-
-```bash
-pip install alphalith
-alphalith analyze 中际旭创         # A 股
-alphalith analyze 腾讯              # 港股
-alphalith analyze 英伟达            # 美股
-alphalith analyze 中际旭创 腾讯 英伟达 --compare    # 跨市场对比
-```
-
----
-
-## 💻 Python API
-
-```python
-from alphalith import Council
-
-council = Council(language="zh-CN", depth="standard")
-decision = council.convene("300308")  # 中际旭创
-
-print(decision.action)            # "buy"
-print(decision.confidence)        # 0.78
-print(decision.market_warnings)   # ["T+1 限制", "距涨停 +8.7%"]
-print(decision.estimated_fees)    # {"佣金": 39.68, "过户费": 1.59}
-```
-
----
-
-## 📊 输出样例
-
-```
-🪨 慧投 · AI 慧眼，洞察先机
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ 技术分析师     →  看多（RSI 反弹，MACD 金叉）
-✓ 基本面分析师   →  中性（PE 偏高但稳健）
-✓ 新闻分析师     →  看多（光模块需求景气）
-✓ 情绪分析师     →  中性（雪球热度 +12%）
-⚔ 多空辩论 ........................ 1 轮
-🛡 风控审议 ........................ 通过
-🪨 决策已封存于立石
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🇨🇳 中际旭创 (300308.SZ)
-决  策：  持仓        置信度：  56%
-建议手数：100 股      买入价：  ¥1,149.00
-止  损：  ¥1,114.53   目  标：  ¥1,217.94
-预估费用：¥0.00（盈亏平衡 +0.00%）
-
-⚠️  A 股规则提示：
-   • T+1：今日买入次日才能卖
-   • 距涨停 +17.39%（涨停价 ¥1348.80）
-   • 距跌停 -21.74%（跌停价 ¥899.20）
-   • 最小交易单位：100 股（1 手）
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
----
-
 ## 🌍 三大市场，一套代码
 
 | 功能 | 🇨🇳 A 股 | 🇭🇰 港股 | 🇺🇸 美股 |
@@ -184,22 +127,6 @@ print(decision.estimated_fees)    # {"佣金": 39.68, "过户费": 1.59}
 
 ---
 
-## 🔌 LLM 智能降级
-
-```python
-# 不管你配了哪个，都能跑
-DeepSeek  →  通义千问  →  Claude  →  本地 Ollama
-```
-
-| 模型 | 单次成本 | 配置 |
-|------|---------|------|
-| **DeepSeek**（默认） | < ¥0.07 | `DEEPSEEK_API_KEY` |
-| 通义千问 Qwen | < ¥0.14 | `DASHSCOPE_API_KEY` |
-| Claude Opus 4.8 | ~ ¥1.0 | `ANTHROPIC_API_KEY` |
-| Ollama（本地） | ¥0 | `ollama pull qwen3:8b` |
-
----
-
 ## 🪖 三档研究深度
 
 | 深度 | 耗时 | Agent 数 | 辩论 | 成本 | 适用 |
@@ -210,7 +137,7 @@ DeepSeek  →  通义千问  →  Claude  →  本地 Ollama
 
 ---
 
-## ⚡ 模型配置：15 家供应商 × 两级联动
+## 🔌 LLM Providers
 
 选择「供应商」→ 自动填入 API Base URL → 选择预设模型 → 或输入自定义模型 ID，三步完成配置。
 

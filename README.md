@@ -21,7 +21,7 @@
 
 > **Origin of the Name**: *Alphalith* = **Alpha** (excess returns) + **Lith** (Ancient Greek λίθος, "bedrock") → "Alpha decisions sealed in the bedrock," echoed by the closing inscription *Sealed in the Bedrock*. The Chinese name 慧投 (Huìtóu) = 慧眼 (insightful eye) + 投研 (investment research).
 
-> **v0.2.1** · A lightweight, zero-dependency multi-agent AI investment engine with native support for **A-share / HK / US** markets.
+> A lightweight, zero-dependency multi-agent AI investment engine with native support for **A-share / HK / US** markets.
 
 > Hedge funds have analyst teams. **Now you do too.**
 
@@ -110,56 +110,6 @@ Multi-stock monitoring dashboard: price cards, signal matrix, strategy heatmaps.
 
 ---
 
-## 🚀 Quick Start
-
-```bash
-pip install alphalith
-alphalith analyze NVDA           # US
-alphalith analyze 0700.HK        # HK
-alphalith analyze 300308         # A-share (中际旭创)
-alphalith analyze 中际旭创 腾讯 NVDA --compare   # Cross-market
-```
-
----
-
-## 💻 Python API
-
-```python
-from alphalith import Council
-
-council = Council(language="en", depth="standard")
-decision = council.convene("300308")  # 中际旭创
-
-print(decision.action)       # "buy"
-print(decision.confidence)   # 0.78
-print(decision.reasoning)    # full multi-agent debate transcript
-print(decision.market_warnings)
-```
-
----
-
-## 📊 Sample Output
-
-```
-🪨 ALPHALITH · The Bedrock of AI-Driven Alpha
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ Technical Analyst    →  Bullish (RSI bounce, MACD cross)
-✓ Fundamental Analyst  →  Neutral (PE elevated)
-✓ News Analyst         →  Bullish (new GPU launch)
-✓ Sentiment Analyst    →  Bullish (Reddit buzz +42%)
-⚔ Bull vs Bear .................... 1 round
-🛡 Risk Manager .................... Approved
-🪨 Decision Sealed in the Bedrock
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DECISION:  BUY     Confidence: 78%
-SHARES:    10      Entry: $145.20
-STOP-LOSS: $140.85 TARGET: $158.00
-FEES:      $0.04   Breakeven: +0.03%
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
----
-
 ## 🌍 Three Markets, One Workflow
 
 | Feature | 🇨🇳 A-share | 🇭🇰 Hong Kong | 🇺🇸 US Stocks |
@@ -174,22 +124,6 @@ FEES:      $0.04   Breakeven: +0.03%
 
 ---
 
-## 🔌 LLM Providers (Auto-Fallback)
-
-```python
-# Smart fallback: works with whatever key you have
-DeepSeek  →  Qwen  →  Claude  →  Local Ollama
-```
-
-| Provider | Cost / Run | Setup |
-|---|---|---|
-| **DeepSeek** (default) | < $0.01 | Set `DEEPSEEK_API_KEY` |
-| Qwen (DashScope) | < $0.02 | Set `DASHSCOPE_API_KEY` |
-| Claude Opus 4.8 | ~$0.15 | Set `ANTHROPIC_API_KEY` |
-| Ollama (local) | $0 | `ollama pull qwen3:8b` |
-
----
-
 ## 🪖 Three Research Depths
 
 | Depth | Time | Agents | Debate | Cost | Use Case |
@@ -200,7 +134,7 @@ DeepSeek  →  Qwen  →  Claude  →  Local Ollama
 
 ---
 
-## ⚡ Model Configuration: 15 Providers × Two-Level Selection
+## 🔌 LLM Providers
 
 Select Provider → Auto-fill API Base URL → Choose preset model or enter custom model ID — three steps, zero friction.
 
