@@ -884,18 +884,46 @@ a { color:inherit; text-decoration:none; }
   <div class="card">
     <div class="card-body">
       <div class="setting-group">
-        <div class="setting-group-title">LLM 模型</div>
+        <div class="setting-group-title">🤖 LLM 模型</div>
         <div class="setting-row">
-          <div><div class="setting-label">API Base URL</div><div class="setting-desc">LLM 服务端点地址</div></div>
-          <div class="setting-control"><input class="setting-input" id="setApiBase" placeholder="默认 DeepSeek"></div>
+          <div><div class="setting-label">模型选择</div><div class="setting-desc">切换后自动填入对应的 API 地址和参数</div></div>
+          <div class="setting-control">
+            <select class="setting-input" id="setModelPreset" onchange="onModelPresetChange(this)" style="cursor:pointer">
+              <optgroup label="DeepSeek (推荐)">
+                <option value="deepseek-v3" data-model="deepseek-chat" data-base="https://api.deepseek.com/v1" data-key-env="DEEPSEEK_API_KEY">DeepSeek V3 · ¥0.003/次</option>
+                <option value="deepseek-r1" data-model="deepseek-reasoner" data-base="https://api.deepseek.com/v1" data-key-env="DEEPSEEK_API_KEY">DeepSeek R1 · 推理增强</option>
+              </optgroup>
+              <optgroup label="通义千问">
+                <option value="qwen-max" data-model="qwen-max" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen-Max · 旗舰</option>
+                <option value="qwen-plus" data-model="qwen-plus" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen-Plus · 均衡</option>
+              </optgroup>
+              <optgroup label="OpenAI">
+                <option value="gpt-4o" data-model="gpt-4o" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">GPT-4o · 多模态旗舰</option>
+                <option value="gpt-4o-mini" data-model="gpt-4o-mini" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">GPT-4o-mini · 轻量高速</option>
+              </optgroup>
+              <optgroup label="Claude">
+                <option value="claude-3.5-sonnet" data-model="claude-3-5-sonnet-20241022" data-base="https://api.anthropic.com/v1" data-key-env="ANTHROPIC_API_KEY">Claude 3.5 Sonnet · 代码王者</option>
+                <option value="claude-3-opus" data-model="claude-3-opus-20240229" data-base="https://api.anthropic.com/v1" data-key-env="ANTHROPIC_API_KEY">Claude 3 Opus · 深度推理</option>
+              </optgroup>
+              <optgroup label="Google">
+                <option value="gemini-2.5-pro" data-model="gemini-2.5-pro" data-base="https://generativelanguage.googleapis.com/v1beta" data-key-env="GEMINI_API_KEY">Gemini 2.5 Pro · 长上下文</option>
+              </optgroup>
+              <optgroup label="智谱">
+                <option value="glm-4-plus" data-model="glm-4-plus" data-base="https://open.bigmodel.cn/api/paas/v4" data-key-env="ZHIPU_API_KEY">GLM-4 Plus · 国产GPT</option>
+              </optgroup>
+              <optgroup label="本地 / 其他">
+                <option value="custom" data-model="" data-base="" data-key-env="">自定义模型…</option>
+              </optgroup>
+            </select>
+          </div>
         </div>
         <div class="setting-row">
-          <div><div class="setting-label">API Key</div><div class="setting-desc">通过环境变量 DEEPSEEK_API_KEY 设置</div></div>
-          <div class="setting-control"><input class="setting-input" id="setApiKey" type="password" value="••••••••" placeholder="已配置"></div>
+          <div><div class="setting-label">API Base URL</div><div class="setting-desc">模型服务端点</div></div>
+          <div class="setting-control"><input class="setting-input" id="setApiBase" placeholder="https://api.deepseek.com/v1"></div>
         </div>
         <div class="setting-row">
-          <div><div class="setting-label">模型名称</div><div class="setting-desc">当前使用 deepseek-chat</div></div>
-          <div class="setting-control"><input class="setting-input" id="setModel" value="deepseek-chat" readonly style="opacity:.5"></div>
+          <div><div class="setting-label">API Key</div><div class="setting-desc" id="setApiKeyDesc">环境变量: DEEPSEEK_API_KEY</div></div>
+          <div class="setting-control"><input class="setting-input" id="setApiKey" type="password" placeholder="留空则使用环境变量"></div>
         </div>
       </div>
       <div class="setting-group">
@@ -1927,15 +1955,73 @@ async function handleChat(text) {
 async function saveSettings() {
   try {
     const config = {};
+    const modelSel = document.getElementById('setModelPreset');
+    const preset = modelSel.value;
+    const selOpt = modelSel.options[modelSel.selectedIndex];
+    const model = selOpt.dataset.model || document.getElementById('setCustomModel')?.value?.trim() || '';
     const base = document.getElementById('setApiBase').value.trim();
     const key = document.getElementById('setApiKey').value.trim();
-    if (base) { config.model = config.model||{}; config.model.base_url = base; }
-    if (key && key !== '••••••••') { config.model = config.model||{}; config.model.api_key = key; }
+    if (model) { config.model = config.model || {}; config.model.model = model; }
+    if (base)  { config.model = config.model || {}; config.model.base_url = base; }
+    if (key)   { config.model = config.model || {}; config.model.api_key = key; }
+    if (preset) { config.model = config.model || {}; config.model.provider = preset; }
     await api('/api/config', config);
     addMsg('✅ 配置已保存', 'assistant');
   } catch (err) {
-    addMsg('❌ 保存失败: '+err.message, 'error');
+    addMsg('❌ 保存失败: ' + (err.message || err), 'error');
   }
+}
+
+async function loadSettings() {
+  try {
+    const cfg = await api('/api/config');
+    if (!cfg || !cfg.model) return;
+    const m = cfg.model;
+    if (m.base_url) document.getElementById('setApiBase').value = m.base_url;
+    if (m.api_key)  document.getElementById('setApiKey').value = m.api_key || '';
+    // Match preset from saved model name
+    const sel = document.getElementById('setModelPreset');
+    if (m.model || m.provider) {
+      for (let i = 0; i < sel.options.length; i++) {
+        const opt = sel.options[i];
+        if (opt.dataset.model === m.model || opt.value === m.provider) {
+          sel.selectedIndex = i;
+          onModelPresetChange(sel);
+          break;
+        }
+      }
+    }
+  } catch (e) { /* ignore */ }
+}
+
+function onModelPresetChange(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const model = opt.dataset.model;
+  const base  = opt.dataset.base;
+  const keyEnv= opt.dataset.keyEnv;
+  const preset= opt.value;
+  if (preset === 'custom') {
+    // Show custom model input
+    let cm = document.getElementById('customModelRow');
+    if (!cm) {
+      cm = document.createElement('div');
+      cm.id = 'customModelRow';
+      cm.className = 'setting-row';
+      cm.innerHTML = `<div><div class="setting-label">自定义模型名</div><div class="setting-desc">OpenAI 兼容的模型标识</div></div>
+        <div class="setting-control"><input class="setting-input" id="setCustomModel" placeholder="如: deepseek-chat"></div>`;
+      sel.closest('.setting-group').insertBefore(cm, sel.closest('.setting-row').nextSibling.nextSibling);
+    }
+    cm.style.display = '';
+    document.getElementById('setApiBase').value = '';
+    document.getElementById('setApiBase').placeholder = '输入自定义 API 地址';
+    document.getElementById('setApiKeyDesc').textContent = '输入自定义 API Key';
+    return;
+  }
+  // Hide custom model row
+  const cm = document.getElementById('customModelRow');
+  if (cm) cm.style.display = 'none';
+  document.getElementById('setApiBase').value = base || '';
+  document.getElementById('setApiKeyDesc').textContent = '环境变量: ' + (keyEnv || '自行设置');
 }
 
 // ============================================================

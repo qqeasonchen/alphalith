@@ -207,33 +207,44 @@ alphalith dashboard --symbols 600519,0700.HK,NVDA --output dashboard.html
 零外部依赖，单文件 HTML（CSS + JS 内联）+ Python 内置 HTTP 服务，一键启动：
 
 ```bash
-alphalith gui                    # 默认 8888 端口，自动打开浏览器
+alphalith gui                    # 默认 8888 端口
 alphalith gui --port 3000        # 自定义端口
-alphalith gui --no-browser       # 仅启动服务，不打开浏览器
+alphalith gui --no-browser       # 仅启动服务
 ```
 
-### 界面布局
+### 功能页面（7 个）
 
-- **侧栏导航**：投研分析 / 策略回测 / 投研面板 / 信号中心 / 历史记录
-- **投研分析页**：支持单标的或空格/逗号分隔的多标的；深度可选 Quick/Standard/Deep；勾选"实时辩论"可 SSE 流式观看四分析师报告 + 多空辩论过程；进度条实时显示分析阶段
-- **策略回测页**：7 种策略多选（checkbox），并行回测并展示对比表；单策略显示完整 14 项指标（总收益/年化/最大回撤/Sharpe/Sortino/Calmar/信息比率/Alpha/Beta/最大连盈连亏/盈亏比等）+ 收益曲线 + 交易记录
-- **投研面板页**：一键生成 Dashboard HTML，支持新窗口预览或下载
-- **信号中心 / 历史记录**：保留原有功能
+| 页面 | 功能 |
+|---|---|
+| **投研分析** | SSE 流式实时辩论（4 分析师 + 多空辩论），进度条显示分析阶段，图表 + 指标 + 决策卡片 |
+| **策略回测** | 7 策略多选（checkbox）并行回测，14 项风险指标（Sharpe/Sortino/Calmar/信息比等），收益曲线图 + 交易记录 |
+| **投研面板** | Dashboard 一键生成（行情卡片 + 信号矩阵 + 回测热力图 + 决策时间线），内嵌 iframe 展示 |
+| **信号面板** | 多标的 × 多策略信号汇总（LONG/SHORT/NEUTRAL），支持批量输入 |
+| **批量分析** | 空格分隔多标的批量投研，串行执行 + 进度追踪 |
+| **决策历史** | 按标的筛选历史决策记录，自动加载最新数据 |
+| **审查统计** | 买入/卖出/持仓次数统计 + 胜率 + 平均置信度 |
 
-### v0.3.0 新增能力（GUI 已完整覆盖 CLI）
+### 界面特性
 
-| 功能 | CLI | GUI |
+- 🌓 **暗黑 / 浅色主题切换**（CSS 变量驱动，ECharts 同步重绘）
+- 🔐 **真实登录系统**（PBKDF2-SHA256 加密，Cookie session，默认管理员 admin/alphalith）
+- 📡 **SSE 流式输出**（投研分析实时推送进度 / 分析师报告 / 多空辩论）
+- 🎯 **标的输入校验**（失去焦点自动调 /api/resolve 校验，绿✓/红✗ 视觉反馈，A股/港股/美股/中文名全覆盖）
+- 💬 **底部 AI 对话**（支持 /命令 快捷操作，Craft/Auto 模式切换）
+- 📊 **ECharts 图表**（暗黑/浅色主题自适应配色，收益曲线 / 净值走势）
+
+### 支持模型（系统配置页一键切换）
+
+| 厂商 | 模型 | 默认 API |
 |---|---|---|
-| SSE 实时辩论流式展示 | ✅ | ✅ |
-| 多标的批量分析 | `analyze-batch` | ✅ 输入框空格分隔 |
-| 多策略并行回测 | `backtest --strategy A --strategy B` | ✅ 多选 checkbox |
-| 9+ 风险指标展示 | ✅ `--html` | ✅ 14 项指标卡片 |
-| 市场规则提示 | ✅ | ✅ 黄色提示卡 |
-| ADP JSON 导出 | ✅ `to_adp_json()` | ✅ 一键下载按钮 |
-| Token 消耗透明化 | ✅ 报告底部 | ✅ 投资决策卡片内 |
-| 完整手续费明细 | ✅ | ✅ 佣金/印花税/过户费/SEC/其他 |
-| Dashboard 生成 | ✅ `dashboard` 子命令 | ✅ 投研面板页 |
+| DeepSeek | V3 / R1 | `api.deepseek.com/v1` |
+| 通义千问 | Max / Plus | `dashscope.aliyuncs.com` |
+| OpenAI | GPT-4o / 4o-mini | `api.openai.com/v1` |
+| Anthropic | Claude 3.5 Sonnet / 3 Opus | `api.anthropic.com/v1` |
+| Google | Gemini 2.5 Pro | `generativelanguage.googleapis.com` |
+| 智谱 | GLM-4 Plus | `open.bigmodel.cn/api/paas/v4` |
+| 自定义 | 任意 OpenAI 兼容端点 | 手动填写 |
 
 ---
 
-> 🪨 *Sealed in the Bedrock — 决策已封存于立石*
+> 🪨 *Sealed in the Bedrock

@@ -159,11 +159,23 @@ def _validate_password(pwd: str) -> str | None:
 
 DEFAULT_CONFIG = {
     "model": {
-        "provider": "openai",
-        "model": "gpt-4o",
+        "provider": "deepseek-v3",
+        "model": "deepseek-chat",
         "api_key": "",
-        "base_url": "",
+        "base_url": "https://api.deepseek.com/v1",
         "temperature": 0.7,
+    },
+    "model_presets": {
+        "deepseek-v3":      {"model": "deepseek-chat",      "base_url": "https://api.deepseek.com/v1",                        "key_env": "DEEPSEEK_API_KEY"},
+        "deepseek-r1":      {"model": "deepseek-reasoner",  "base_url": "https://api.deepseek.com/v1",                        "key_env": "DEEPSEEK_API_KEY"},
+        "qwen-max":         {"model": "qwen-max",           "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
+        "qwen-plus":        {"model": "qwen-plus",          "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
+        "gpt-4o":           {"model": "gpt-4o",             "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
+        "gpt-4o-mini":      {"model": "gpt-4o-mini",        "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
+        "claude-3.5-sonnet": {"model": "claude-3-5-sonnet-20241022", "base_url": "https://api.anthropic.com/v1",              "key_env": "ANTHROPIC_API_KEY"},
+        "claude-3-opus":    {"model": "claude-3-opus-20240229",       "base_url": "https://api.anthropic.com/v1",              "key_env": "ANTHROPIC_API_KEY"},
+        "gemini-2.5-pro":   {"model": "gemini-2.5-pro",     "base_url": "https://generativelanguage.googleapis.com/v1beta",   "key_env": "GEMINI_API_KEY"},
+        "glm-4-plus":       {"model": "glm-4-plus",         "base_url": "https://open.bigmodel.cn/api/paas/v4",               "key_env": "ZHIPU_API_KEY"},
     },
     "data": {
         "a_share": "akshare",
