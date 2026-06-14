@@ -336,23 +336,24 @@ a { color:inherit; text-decoration:none; }
 /* Chat Area */
 .chat-area {
   flex-shrink:0; border-top:1px solid var(--border-header); background:var(--bg-header);
-  padding:4px 10px 6px;
+  padding:2px 10px 4px;
 }
-.chat-messages { max-height:80px; overflow-y:auto; margin-bottom:4px; display:none; font-size:12px; }
+.chat-messages { max-height:120px; overflow-y:auto; margin-bottom:2px; display:none; font-size:12px; }
 .chat-messages.show { display:block; }
-.msg { padding:4px 0; font-size:12px; line-height:1.4; }
+.msg { padding:3px 0; font-size:12px; line-height:1.4; }
 .msg-user { color:var(--text-primary); font-weight:550; }
 .msg-assistant { color:var(--text-secondary); }
 .msg-alphalith { color:var(--text-tertiary); font-style:italic; font-size:11px; }
 .msg-error { color:var(--red); }
 
 .input-box {
+  display:flex; align-items:flex-end; gap:6px;
   background:var(--bg-input); border:1px solid var(--border-default);
-  border-radius:6px; padding:4px 8px; transition:border-color .2s;
+  border-radius:6px; padding:2px 6px; transition:border-color .2s;
 }
 .input-box:focus-within { border-color:var(--accent); }
 .input-textarea {
-  width:100%; min-height:20px; max-height:44px; border:none; resize:none;
+  flex:1; min-height:20px; max-height:44px; border:none; resize:none;
   background:none; font-size:11px; line-height:1.4; color:var(--text-primary);
   font-family:inherit; outline:none; padding:1px 0;
 }
@@ -365,22 +366,8 @@ a { color:inherit; text-decoration:none; }
 .format-hint { font-size:9px; color:var(--text-secondary); margin-left:4px; white-space:nowrap; opacity:0.75; }
 @media (max-width:900px) { .format-hint { display:none; } }
 
-.input-toolbar {
-  display:flex; align-items:center; justify-content:space-between;
-  margin-top:4px; padding-top:4px; border-top:1px solid var(--border-lighter);
-}
-.toolbar-left { display:flex; align-items:center; gap:4px; }
-.toolbar-right { display:flex; align-items:center; gap:4px; }
-.tb-btn {
-  display:flex; align-items:center; gap:4px;
-  padding:3px 8px; border:none; border-radius:4px;
-  background:none; cursor:pointer; font-size:11px; color:var(--text-tertiary);
-  transition:all .2s; font-family:inherit;
-}
-.tb-btn:hover { background:var(--bg-hover); color:var(--text-secondary); }
-.tb-divider { width:1px; height:16px; background:var(--border-default); margin:0 3px; }
 .send-btn {
-  width:26px; height:26px; border-radius:50%;
+  flex-shrink:0; width:26px; height:26px; border-radius:50%;
   border:none; background:linear-gradient(135deg,var(--accent),var(--accent-end)); color:#fff;
   cursor:pointer; display:flex; align-items:center; justify-content:center;
   transition:all .2s; font-size:12px;
@@ -390,7 +377,7 @@ a { color:inherit; text-decoration:none; }
 
 .input-footer {
   display:flex; align-items:center; justify-content:space-between;
-  margin-top:4px; font-size:9px; color:var(--text-disabled);
+  margin-top:2px; font-size:9px; color:var(--text-disabled);
 }
 
 /* Loading */
@@ -656,10 +643,6 @@ a { color:inherit; text-decoration:none; }
         <span class="menu-icon">📊</span>
         <span class="menu-label">投研面板</span>
       </div>
-      <div class="menu-item" data-page="signals">
-        <span class="menu-icon">📡</span>
-        <span class="menu-label">信号面板</span>
-      </div>
       <div class="menu-divider"></div>
       <div class="menu-item" data-page="history">
         <span class="menu-icon">🕐</span>
@@ -716,23 +699,23 @@ a { color:inherit; text-decoration:none; }
     <h2>🔍 投研分析</h2>
     <p>多智能体 ADP 分析管道：四分析师 → 多空辩论 → 风险评审 → 投资决策。支持单标的或多标的批量（空格 / 逗号分隔）。</p>
   </div>
-  <div class="action-bar">
+  <div class="action-bar" style="flex-wrap:wrap">
     <label>标的</label>
-    <input type="text" class="action-input" id="researchSymbol" value="" placeholder="输入标的代码或名称，空格分隔多个" style="width:320px"
+    <input type="text" class="action-input" id="researchSymbol" value="" placeholder="输入标的代码或名称，空格分隔多个" style="width:220px"
       onblur="validateSymbol(this, document.getElementById('researchSymbolStatus'))">
     <span id="researchSymbolStatus" class="symbol-status"></span>
-    <span class="format-hint">💡 A股:600519｜港股:9988.HK｜美股:AAPL｜中文:腾讯控股</span>
-    <label>深度</label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:8px">
+      <input type="checkbox" id="researchStream" checked style="cursor:pointer"> 开启辩论
+    </label>
+    <label style="margin-left:4px">深度</label>
     <select class="action-select" id="researchDepth">
       <option value="quick">Quick — 仅分析师</option>
       <option value="standard" selected>Standard — 1 轮辩论</option>
       <option value="deep">Deep — 3 轮辩论</option>
     </select>
-    <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-      <input type="checkbox" id="researchStream" checked style="cursor:pointer"> 实时辩论
-    </label>
     <button class="btn-primary" id="btnAnalyze" onclick="runAnalyze()">▶ 开始分析</button>
   </div>
+  <div style="font-size:9px;color:var(--text-tertiary);margin:-2px 0 8px 42px">A股:600519 ｜ 港股:9988.HK ｜ 美股:AAPL ｜ 中文:腾讯控股</div>
 
   <!-- Quick Stats -->
   <div class="stats-grid" id="researchStats">
@@ -802,26 +785,6 @@ a { color:inherit; text-decoration:none; }
   <div class="result-area" id="dashboardResult">
     <div class="empty-state">
       <p>输入要监控的标的，点击「生成面板」</p>
-    </div>
-  </div>
-</div>
-
-<!-- ====== 信号面板 ====== -->
-<div class="page-view fade-in" id="page-signals">
-  <div class="page-header">
-    <h2>📡 信号面板</h2>
-    <p>多智能体综合信号视图</p>
-  </div>
-  <div class="action-bar">
-    <label>标的</label>
-    <input type="text" class="action-input" id="sigSymbol" placeholder="格式：600519 / 9988.HK / AAPL（可多标的空格分隔）" style="width:160px" onblur="validateSymbol(this, document.getElementById('sigSymbolStatus'))">
-    <span id="sigSymbolStatus" class="symbol-status"></span>
-    <button class="btn-primary" onclick="loadSignals()">▶ 获取信号</button>
-  </div>
-  <div class="result-area" id="signalsResult">
-    <div class="empty-state">
-      <p>暂无信号数据</p>
-      <p style="margin-top:4px;font-size:12px">执行「投研分析」后将自动填充</p>
     </div>
   </div>
 </div>
@@ -978,16 +941,12 @@ a { color:inherit; text-decoration:none; }
       <div class="chat-messages" id="chatMessages"></div>
       <div class="input-box">
         <textarea class="input-textarea" id="chatInput"
-          placeholder="今天想做什么？输入标的代码或 /命令，例如：分析腾讯、/backtest 寒武纪 动量 180"
+          placeholder="输入标的代码或 /命令，例如：分析腾讯、/backtest 寒武纪 动量 180"
           rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
-        <div class="input-toolbar">
-          <div class="toolbar-right">
-            <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
-          </div>
-        </div>
-        <div class="input-footer" style="font-size:10px;margin-top:3px">
-          <span style="font-size:10px">内容由 AI 生成 · Alphalith v0.2.1</span>
-        </div>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+      </div>
+      <div class="input-footer" style="font-size:10px;margin-top:2px">
+        <span style="font-size:10px">内容由 AI 生成 · Alphalith v0.2.1</span>
       </div>
     </div>
   <div id="formatHint" style="display:none;position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:6px 14px;font-size:11px;color:var(--text-secondary);z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.3);pointer-events:none;"></div>
@@ -1061,7 +1020,7 @@ const S = {
 
 const pageTitles = {
   research:'投研分析', backtest:'策略回测', dashboard:'投研面板',
-  signals:'信号面板', history:'决策历史', compare:'对比分析', settings:'系统配置'
+  history:'决策历史', compare:'对比分析', settings:'系统配置'
 };
 
 // ============================================================
@@ -1160,7 +1119,6 @@ async function sendMessage() {
     else if (text.startsWith('/backtest') || /回测/.test(text)) { await handleBacktestReq(text); }
     else if (text.startsWith('/analyze') || /(分析|推荐|评估)/.test(text)) { await handleAnalyzeReq(text); }
     else if (text.startsWith('/compare') || text.includes('对比')) { await handleCompareReq(text); }
-    else if (text.startsWith('/signals') || text.includes('信号')) { await handleSignalsReq(text); }
     else { await handleChat(text); }
   } catch (err) {
     addMsg('❌ ' + err.message, 'error');
@@ -1220,13 +1178,20 @@ async function runAnalyze() {
     addMsg('⚠️ 可能无效的标的格式: ' + invalid.join(', ') + ' — 正确格式如：600519 / 9988.HK / AAPL', 'alphalith');
   }
   const depth = document.getElementById('researchDepth').value;
+  const depthLabel = {quick:'Quick',standard:'Standard',deep:'Deep'}[depth]||depth;
   const stream = document.getElementById('researchStream').checked;
   const symbols = raw.split(/[\s,，]+/).filter(Boolean);
-  if (symbols.length === 1) {
-    if (stream) await doAnalyzeStream(symbols[0], depth);
-    else await doAnalyze(symbols[0], depth);
-  } else {
-    await doAnalyzeBatch(symbols, depth);
+  addMsg(`🔍 投研分析开始 — ${symbols.join(', ')} (${depthLabel})`, 'alphalith');
+  try {
+    if (symbols.length === 1) {
+      if (stream) await doAnalyzeStream(symbols[0], depth);
+      else await doAnalyze(symbols[0], depth);
+    } else {
+      await doAnalyzeBatch(symbols, depth);
+    }
+    addMsg(`✅ 投研分析完成 — ${symbols.join(', ')}`, 'alphalith');
+  } catch(e) {
+    addMsg(`❌ 投研分析失败: ${e.message}`, 'error');
   }
 }
 
@@ -1481,7 +1446,7 @@ async function runDashboard() {
   const raw = document.getElementById('dashSymbols').value.trim();
   if (!raw) { addMsg('请输入标的', 'alphalith'); return; }
   const symbols = raw.split(/[\s,，]+/).filter(Boolean).slice(0, 10);
-  addMsg('🚀 正在生成投研面板（标的: '+symbols+'）', 'alphalith');
+  addMsg('🚀 投研面板开始生成 — ' + symbols.join(', '), 'alphalith');
   showProgress('dashboardResult', 20, '正在生成投研面板...');
   try {
     const data = await api('/api/dashboard', { symbols });
@@ -1514,7 +1479,7 @@ async function runDashboard() {
     } else if (!html) {
       addMsg('⚠️ Dashboard 内容为空，请检查标的是否有效', 'alphalith');
     }
-    addMsg('✅ Dashboard 已生成', 'assistant');
+    addMsg('✅ 投研面板生成完成', 'assistant');
   } catch (err) {
     hideProgress('dashboardResult');
     addMsg('❌ Dashboard 生成失败: '+err.message, 'error');
@@ -1602,8 +1567,15 @@ async function runBacktest() {
   if (!strategies.length) { addMsg('请至少勾选一个策略', 'alphalith'); return; }
   const days = parseInt(document.getElementById('btDays').value)||180;
   const horizon = parseInt(document.getElementById('btHorizon').value)||10;
+  const sNames = strategies.map(s => STRATEGY_LABELS[s]||s).join(',');
+  addMsg(`📊 策略回测开始 — ${sym} (${sNames}, ${days}天)`, 'alphalith');
   showProgress('backtestProgress', 5, '正在运行 ' + strategies.length + ' 个策略...', `标的: ${sym}`);
-  await doBacktest(sym, strategies, days, horizon);
+  try {
+    await doBacktest(sym, strategies, days, horizon);
+    addMsg(`✅ 策略回测完成 — ${sym}`, 'alphalith');
+  } catch(e) {
+    addMsg(`❌ 策略回测失败: ${e.message}`, 'error');
+  }
   hideProgress('backtestProgress');
 }
 
@@ -1740,53 +1712,6 @@ function renderBacktest(results) {
       <table class="data-table"><thead><tr><th>#</th><th>策略</th><th>总收益</th><th>Sharpe</th><th>最大回撤</th><th>胜率</th><th>Calmar</th><th>信息比率</th><th>总盈亏</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
   document.querySelector('#backtestResult').innerHTML = html;
-}
-
-// ============================================================
-// SIGNALS
-// ============================================================
-async function loadSignals() {
-  const raw = document.getElementById('sigSymbol').value.trim();
-  if (!raw) { addMsg('请输入标的', 'alphalith'); return; }
-  const symbols = raw.split(/[\s,，]+/).filter(Boolean);
-  const tid = 'typing-sig-'+Date.now();
-  addTyping(tid);
-  try {
-    const data = await api('/api/signals', { symbols });
-    rmTyping(tid);
-    renderSignals(data.signals||[]);
-    addMsg('✅ 信号获取完成 ('+symbols.length+' 个标的)', 'assistant');
-  } catch (err) {
-    rmTyping(tid);
-    addMsg('❌ 信号获取失败: '+err.message, 'error');
-  }
-}
-
-async function handleSignalsReq(text) {
-  const m = text.match(/(?:\/signals\s+)?(\S+)/);
-  switchPage('signals');
-  if (m) document.getElementById('sigSymbol').value = m[1];
-  await loadSignals();
-}
-
-function renderSignals(signals) {
-  if (!signals.length) {
-    document.querySelector('#signalsResult').innerHTML = '<div class="empty-state"><p>暂无信号数据</p><p style="font-size:12px;margin-top:4px">执行分析后自动填充</p></div>';
-    return;
-  }
-  const cards = signals.map((s,i) => `
-    <div class="card" style="margin-bottom:12px">
-      <div class="card-header">
-        <h3>#${i+1} ${s.symbol||'Unknown'}</h3>
-        <span class="tag tag-${s.signal==='buy'?'green':s.signal==='sell'?'red':'amber'}">${s.signal||s.signal||'-'}</span>
-      </div>
-      <div class="card-body" style="display:flex;gap:20px">
-        <div style="flex:1"><span style="color:rgba(255,255,255,0.4);font-size:11px">置信度</span><br><strong>${(s.confidence||0).toFixed(2)}</strong></div>
-        <div style="flex:2"><span style="color:rgba(255,255,255,0.4);font-size:11px">摘要</span><br><span style="color:rgba(255,255,255,0.55);font-size:12px;line-height:1.5">${s.summary||'-'}</span></div>
-        <div style="flex:1"><span style="color:rgba(255,255,255,0.4);font-size:11px">时间</span><br><span style="font-size:11px;color:rgba(255,255,255,0.35)">${(s.timestamp||'').slice(0,16)}</span></div>
-      </div>
-    </div>`).join('');
-  document.querySelector('#signalsResult').innerHTML = cards;
 }
 
 // ============================================================
@@ -2464,11 +2389,6 @@ async function submitAuth(ev) {
     // Clear form
     document.getElementById('authPassword').value = '';
     document.getElementById('authDisplay').value = '';
-
-    // Welcome message in chat
-    if (typeof addMsg === 'function') {
-      addMsg('alphalith', `欢迎，${data.display_name}！`);
-    }
   } catch (e) {
     showAuthError('网络错误：' + e.message);
   } finally {
@@ -2485,10 +2405,6 @@ async function checkAuth() {
     if (data.logged_in) {
       Auth.user = { username: data.username, display_name: data.display_name, is_default: data.is_default };
       renderUserUI();
-      // 如果当前登录的就是默认管理员，提示改密码
-      if (data.is_default && typeof addMsg === 'function') {
-        setTimeout(() => addMsg('alphalith', '⚠️ 你正在使用默认管理员账号（admin/alphalith），建议尽快在「系统配置」中修改密码或注册新账号。'), 500);
-      }
       return true;
     } else {
       Auth.user = null;

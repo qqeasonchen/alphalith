@@ -40,10 +40,16 @@ def _connect() -> sqlite3.Connection:
             llm TEXT,
             data_source TEXT,
             llm_total_tokens INTEGER,
+            notes TEXT,
             payload_json TEXT NOT NULL
         )
         """
     )
+    # 迁移：旧表可能没有 notes 列
+    try:
+        conn.execute("SELECT notes FROM decisions LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE decisions ADD COLUMN notes TEXT")
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_decisions_symbol_ts ON decisions(symbol, ts DESC)"
     )
@@ -55,12 +61,13 @@ def save(decision: Decision) -> None:
     try:
         with _connect() as conn:
             payload = json.dumps(decision.to_adp_json(), ensure_ascii=False)
+            notes = decision.reasoning or ""
             conn.execute(
                 """
                 INSERT OR REPLACE INTO decisions
                 (id, ts, symbol, market, action, confidence, entry_price, shares,
-                 llm, data_source, llm_total_tokens, payload_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 llm, data_source, llm_total_tokens, notes, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     decision.id,
@@ -74,6 +81,7 @@ def save(decision: Decision) -> None:
                     decision.extra.get("llm"),
                     decision.extra.get("data_source"),
                     int(decision.extra.get("llm_total_tokens") or 0),
+                    notes,
                     payload,
                 ),
             )

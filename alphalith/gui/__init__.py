@@ -1004,39 +1004,6 @@ class GuiHandler(BaseHTTPRequestHandler):
                 self._send_error_json(str(e))
             return
 
-        if path == "/api/signals":
-            try:
-                body = json.loads(self._read_body().decode("utf-8"))
-                symbols = body.get("symbols", [])
-
-                from ..journal import history as jnl_history
-
-                signals = []
-                for sym in (symbols or [])[:10]:
-                    rows = jnl_history(symbol=sym, limit=1)
-                    if rows:
-                        r = rows[0]
-                        signals.append({
-                            "symbol": r.get("symbol", sym),
-                            "signal": r.get("action", "hold"),
-                            "summary": r.get("reasoning", r.get("notes", "")),
-                            "confidence": r.get("confidence", 0.5),
-                            "timestamp": r.get("date", r.get("ts", "")),
-                        })
-                    else:
-                        signals.append({
-                            "symbol": sym,
-                            "signal": "unknown",
-                            "summary": "暂无信号数据，请先运行分析。",
-                            "confidence": 0.0,
-                            "timestamp": "",
-                        })
-
-                self._send_json({"signals": signals})
-            except Exception as e:
-                self._send_error_json(str(e))
-            return
-
         if path == "/api/dashboard":
             try:
                 body = json.loads(self._read_body().decode("utf-8"))
