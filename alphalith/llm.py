@@ -66,6 +66,46 @@ class StubLLM:
         return reply
 
 
+def _parse_truncated_json(text: str) -> dict | None:
+    """Try to salvage data from a truncated JSON response.
+    
+    DeepSeek response format: {"choices":[{"message":{"content":"..."}}],"usage":{...}}
+    If only the usage object / closing braces are missing, extract what we can.
+    """
+    import json
+    import re
+    # Strategy 1: JSON5-style repair — close open structures
+    open_braces = text.count("{") - text.count("}")
+    open_brackets = text.count("[") - text.count("]")
+    repaired = text + "]" * open_brackets + "}" * open_braces
+    try:
+        return json.loads(repaired)
+    except (json.JSONDecodeError, ValueError):
+        pass
+    # Strategy 2: regex extract content field directly
+    m = re.search(r'"content"\s*:\s*"((?:[^"\\]|\\.)*)"', text)
+    if m:
+        content = m.group(1).encode().decode("unicode_escape")
+        return {"choices": [{"message": {"content": content}}]}
+    return None
+
+
+def _read_response(resp) -> bytes:
+    """Read response body with IncompleteRead recovery.
+    
+    If the connection is truncated, IncompleteRead.partial contains
+    the bytes that were successfully read — try to salvage partial JSON.
+    """
+    from http.client import IncompleteRead
+    try:
+        return resp.read()
+    except IncompleteRead as e:
+        # 利用已读取的部分数据（765 bytes 可能包含完整 content）
+        if e.partial:
+            return e.partial
+        raise
+
+
 def _try_deepseek() -> "LLM | None":
     key = os.getenv("DEEPSEEK_API_KEY")
     if not key:
@@ -74,13 +114,18 @@ def _try_deepseek() -> "LLM | None":
     import json
     import urllib.request
     import urllib.error
+    from http.client import IncompleteRead, RemoteDisconnected
+
+    # IncompleteRead / RemoteDisconnected 是可重试的瞬时网络错误
+    _RETRYABLE = (IncompleteRead, RemoteDisconnected, ConnectionResetError, TimeoutError)
+    _MAX_RETRIES = 1
 
     @dataclass
     class _DS:
         name: str = "deepseek"
         usage: Usage = field(default_factory=Usage)
 
-        def chat(self, prompt: str, system: str = "") -> str:
+        def _call_once(self, prompt: str, system: str) -> tuple[str, dict]:
             msg = []
             if system:
                 msg.append({"role": "system", "content": system})
@@ -99,24 +144,52 @@ def _try_deepseek() -> "LLM | None":
                 },
                 method="POST",
             )
-            try:
-                with urllib.request.urlopen(req, timeout=60) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                content = data["choices"][0]["message"]["content"] or ""
-                # DeepSeek 返回的 usage 是真实计费 token
-                u = data.get("usage") or {}
-                self.usage.calls += 1
-                if "prompt_tokens" in u:
-                    self.usage.prompt_tokens += int(u.get("prompt_tokens", 0))
-                    self.usage.completion_tokens += int(u.get("completion_tokens", 0))
-                else:
-                    self.usage.prompt_tokens += _estimate_tokens(system) + _estimate_tokens(prompt)
-                    self.usage.completion_tokens += _estimate_tokens(content)
-                    self.usage.estimated = True
-                return content
-            except (urllib.error.URLError, KeyError, ValueError) as e:
-                self.usage.calls += 1
-                return f"立场：中性\n置信度：0.5\n摘要：LLM 调用失败({e.__class__.__name__})，已降级。"
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                raw = _read_response(resp)
+                text = raw.decode("utf-8")
+                try:
+                    data = json.loads(text)
+                except (json.JSONDecodeError, ValueError):
+                    # 截断 JSON：尝试修复后解析
+                    repaired = _parse_truncated_json(text)
+                    if repaired is None:
+                        raise
+                    data = repaired
+            content = data["choices"][0]["message"]["content"] or ""
+            u = data.get("usage") or {}
+            return content, u
+
+        def chat(self, prompt: str, system: str = "") -> str:
+            last_err = None
+            for attempt in range(_MAX_RETRIES + 1):
+                try:
+                    content, u = self._call_once(prompt, system)
+                    self.usage.calls += 1
+                    if "prompt_tokens" in u:
+                        self.usage.prompt_tokens += int(u.get("prompt_tokens", 0))
+                        self.usage.completion_tokens += int(u.get("completion_tokens", 0))
+                    else:
+                        self.usage.prompt_tokens += _estimate_tokens(system) + _estimate_tokens(prompt)
+                        self.usage.completion_tokens += _estimate_tokens(content)
+                        self.usage.estimated = True
+                    return content
+                except _RETRYABLE as e:
+                    last_err = e
+                    if attempt < _MAX_RETRIES:
+                        import time
+                        time.sleep(1.0 * (attempt + 1))  # 退避 1s / 2s
+                        continue
+                except (urllib.error.URLError, KeyError, ValueError, json.JSONDecodeError) as e:
+                    last_err = e
+                    break
+                except Exception as e:
+                    # catch-all 兜底：任何未预期的异常都不应传播到上层
+                    last_err = e
+                    break
+
+            self.usage.calls += 1
+            err_name = last_err.__class__.__name__ if last_err else "Unknown"
+            return f"立场：中性\n置信度：0.5\n摘要：LLM 调用失败({err_name})，已降级。"
 
     return _DS()
 

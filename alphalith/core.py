@@ -13,6 +13,9 @@ from .llm import get_llm
 from .rules import get_rules
 from .schema import Decision, FeeBreakdown
 
+# 分析师角色列表（与 agents.py _FOCUS 同步）
+_FOCUS_KEYS = ["技术分析师", "基本面分析师", "新闻分析师", "情绪分析师"]
+
 
 def _decide_action(reports, debates) -> tuple[str, float]:
     """简单加权：分析师 70% + 辩论 30%。"""
@@ -47,12 +50,23 @@ def analyze(symbol: str, depth: str = "standard", persist: bool = True) -> Decis
     rules = get_rules(md.quote.market)
     llm = get_llm()
 
-    # 1) 四分析师
-    reports = run_analysts(llm, md)
+    # 1) 四分析师（外层兜底：任意环节异常都不中断 pipeline）
+    try:
+        reports = run_analysts(llm, md)
+    except Exception as e:
+        from .schema import AgentReport
+        reports = [
+            AgentReport(name=role, stance="neutral", confidence=0.5,
+                        summary=f"管道中断({e.__class__.__name__})，分析师降级。")
+            for role in _FOCUS_KEYS
+        ]
 
     # 2) 多空辩论
     rounds = {"quick": 0, "standard": 1, "deep": 3}.get(depth, 1)
-    debates = run_debate(llm, md, reports, rounds)
+    try:
+        debates = run_debate(llm, md, reports, rounds)
+    except Exception:
+        debates = []
 
     # 3) 决策合成
     action, confidence = _decide_action(reports, debates)

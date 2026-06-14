@@ -119,11 +119,20 @@ def run_analysts(llm: LLM, md: MarketData) -> list[AgentReport]:
         prompt = _ANALYST_PROMPT.format(
             role=role, symbol=md.quote.symbol, snapshot=snapshot, focus=focus
         )
-        reply = llm.chat(
-            prompt,
-            system="你是严谨、可量化的金融分析师。只引用快照中的事实，禁止虚构数字。",
-        )
-        reports.append(_parse(reply, role))
+        try:
+            reply = llm.chat(
+                prompt,
+                system="你是严谨、可量化的金融分析师。只引用快照中的事实，禁止虚构数字。",
+            )
+            reports.append(_parse(reply, role))
+        except Exception as e:
+            # 单个分析师失败时降级为中性报告，不中断整个 pipeline
+            reports.append(AgentReport(
+                name=role,
+                stance="neutral",
+                confidence=0.5,
+                summary=f"调用失败({e.__class__.__name__})，已降级为中性。",
+            ))
     return reports
 
 
@@ -143,21 +152,27 @@ def run_debate(
         rebuttal_hint = ""
         if i > 0:
             rebuttal_hint = f"\n上一轮对手观点（请针对性反驳）：{last_bear or last_bull}\n"
-        bull = llm.chat(
-            f"你是「看多研究员」。\n\n【市场快照】\n{snapshot}\n\n"
-            f"【4 位分析师结论】\n{summary}\n{rebuttal_hint}\n"
-            f"请给出 80 字以内的看多论点，必须引用快照中的具体数字或新闻原文。",
-            system="只输出论点本身，不要前缀，不要客套。",
-        )
-        last_bull = bull.strip()
-        bear = llm.chat(
-            f"你是「看空研究员」。\n\n【市场快照】\n{snapshot}\n\n"
-            f"【4 位分析师结论】\n{summary}\n"
-            f"\n上一轮对手观点（请针对性反驳）：{last_bull}\n"
-            f"请给出 80 字以内的看空论点，必须引用快照中的具体数字或新闻原文。",
-            system="只输出论点本身，不要前缀，不要客套。",
-        )
-        last_bear = bear.strip()
+        try:
+            bull = llm.chat(
+                f"你是「看多研究员」。\n\n【市场快照】\n{snapshot}\n\n"
+                f"【4 位分析师结论】\n{summary}\n{rebuttal_hint}\n"
+                f"请给出 80 字以内的看多论点，必须引用快照中的具体数字或新闻原文。",
+                system="只输出论点本身，不要前缀，不要客套。",
+            )
+            last_bull = bull.strip()
+        except Exception as e:
+            last_bull = f"看多方调用失败({e.__class__.__name__})"
+        try:
+            bear = llm.chat(
+                f"你是「看空研究员」。\n\n【市场快照】\n{snapshot}\n\n"
+                f"【4 位分析师结论】\n{summary}\n"
+                f"\n上一轮对手观点（请针对性反驳）：{last_bull}\n"
+                f"请给出 80 字以内的看空论点，必须引用快照中的具体数字或新闻原文。",
+                system="只输出论点本身，不要前缀，不要客套。",
+            )
+            last_bear = bear.strip()
+        except Exception as e:
+            last_bear = f"看空方调用失败({e.__class__.__name__})"
         debates.append(
             DebateRound(bull=last_bull[:300], bear=last_bear[:300])
         )

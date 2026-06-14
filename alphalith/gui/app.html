@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alphalith — AI 投研引擎</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+/* ====== CSS VARIABLES (Dark theme default) ====== */
+:root {
+  --sidebar-w: 240px;
+  --sidebar-collapsed-w: 72px;
+  --bg-sidebar: #0a0a0a;
+  --bg-main: #111111;
+  --bg-header: #0f0f0f;
+  --bg-card: #1a1a1a;
+  --bg-elevated: #141414;
+  --bg-input: #1a1a1a;
+  --bg-hover: rgba(255,255,255,0.06);
+  --bg-hover-strong: rgba(255,255,255,0.08);
+  --bg-active: rgba(99,102,241,0.15);
+  --bg-bull: rgba(16,185,129,0.06);
+  --bg-bear: rgba(239,68,68,0.06);
+  --border-default: #2a2a2a;
+  --border-light: #1a1a1a;
+  --border-lighter: #222;
+  --border-header: #1c1c1c;
+  --text-primary: rgba(255,255,255,0.85);
+  --text-secondary: rgba(255,255,255,0.55);
+  --text-tertiary: rgba(255,255,255,0.35);
+  --text-muted: rgba(255,255,255,0.30);
+  --text-disabled: rgba(255,255,255,0.25);
+  --text-placeholder: #444;
+  --accent: #6366F1;
+  --accent-end: #8B5CF6;
+  --accent-soft: rgba(99,102,241,0.15);
+  --accent-text: #A5B4FC;
+  --red: #EF4444;
+  --red-soft: rgba(239,68,68,0.15);
+  --green: #10B981;
+  --green-soft: rgba(16,185,129,0.15);
+  --amber: #F59E0B;
+  --amber-soft: rgba(245,158,11,0.15);
+  --blue: #3B82F6;
+  --blue-soft: rgba(59,130,246,0.15);
+  --scrollbar-thumb: rgba(255,255,255,0.12);
+  --scrollbar-thumb-hover: rgba(255,255,255,0.20);
+  --toggle-bg: #333;
+  --code-bg: #0a0a0a;
+  --code-border: #2a2a2a;
+  --code-text: #d4d4d4;
+  --ec-line: #6366F1;
+  --ec-area0: rgba(99,102,241,0.25);
+  --ec-area1: rgba(99,102,241,0);
+  --ec-grid: #2a2a2a;
+  --ec-axis-text: rgba(255,255,255,0.40);
+  --ec-bg: transparent;
+}
+
+[data-theme="light"] {
+  --bg-sidebar: #f5f5f5;
+  --bg-main: #ffffff;
+  --bg-header: #fafafa;
+  --bg-card: #ffffff;
+  --bg-elevated: #f9f9f9;
+  --bg-input: #ffffff;
+  --bg-hover: rgba(0,0,0,0.04);
+  --bg-hover-strong: rgba(0,0,0,0.06);
+  --bg-active: rgba(99,102,241,0.10);
+  --bg-bull: rgba(16,185,129,0.06);
+  --bg-bear: rgba(239,68,68,0.06);
+  --border-default: #e8e8e8;
+  --border-light: #f0f0f0;
+  --border-lighter: #e8e8e8;
+  --border-header: #e8e8e8;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666;
+  --text-tertiary: #999;
+  --text-muted: #aaa;
+  --text-disabled: #bbb;
+  --text-placeholder: #bbb;
+  --accent-text: #4F46E5;
+  --red: #DC2626;
+  --red-soft: rgba(220,38,38,0.10);
+  --green: #059669;
+  --green-soft: rgba(5,150,105,0.10);
+  --amber: #D97706;
+  --amber-soft: rgba(217,119,6,0.10);
+  --blue: #2563EB;
+  --blue-soft: rgba(37,99,235,0.10);
+  --scrollbar-thumb: rgba(0,0,0,0.15);
+  --scrollbar-thumb-hover: rgba(0,0,0,0.25);
+  --toggle-bg: #d1d5db;
+  --code-bg: #f5f5f5;
+  --code-border: #e8e8e8;
+  --code-text: #1a1a1a;
+  --ec-line: #6366F1;
+  --ec-area0: rgba(99,102,241,0.20);
+  --ec-area1: rgba(99,102,241,0);
+  --ec-grid: #e8e8e8;
+  --ec-axis-text: #999;
+  --ec-bg: transparent;
+}
+
+/* ====== RESET & BASE ====== */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei UI',sans-serif; font-size:14px; color:var(--text-primary); background:var(--bg-sidebar); }
+body { overflow:hidden; }
+ul, ol { list-style:none; }
+a { color:inherit; text-decoration:none; }
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--scrollbar-thumb); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--scrollbar-thumb-hover); }
+
+/* ====== LAYOUT ====== */
+.app-layout { display:flex; height:100vh; }
+
+/* ====== SIDEBAR ====== */
+.app-sidebar {
+  width:var(--sidebar-w); min-width:var(--sidebar-w); background:var(--bg-sidebar);
+  display:flex; flex-direction:column; border-right:1px solid var(--border-light);
+  transition:width .3s,min-width .3s;
+  position:relative; z-index:10;
+}
+.app-sidebar.collapsed { width:var(--sidebar-collapsed-w); min-width:var(--sidebar-collapsed-w); }
+
+/* Logo */
+.sidebar-logo {
+  height:64px; display:flex; align-items:center; padding:0 20px;
+  border-bottom:1px solid var(--border-light); flex-shrink:0;
+  transition:padding .3s;
+}
+.sidebar-logo svg { width:32px; height:32px; flex-shrink:0; }
+.sidebar-logo .logo-text { font-size:18px; font-weight:700; color:var(--accent); margin-left:10px; white-space:nowrap; letter-spacing:-.5px; }
+.sidebar-logo .logo-sub { font-size:11px; color:var(--text-muted); margin-left:6px; margin-top:4px; }
+.app-sidebar.collapsed .sidebar-logo { padding:0 18px; justify-content:center; }
+.app-sidebar.collapsed .sidebar-logo .logo-text,
+.app-sidebar.collapsed .sidebar-logo .logo-sub { display:none; }
+
+/* Menu */
+.sidebar-menu-wrap { flex:1; overflow-y:auto; overflow-x:hidden; padding:8px 0; }
+.menu-item {
+  display:flex; align-items:center; height:42px; padding:0 20px; cursor:pointer;
+  color:var(--text-secondary); font-size:13px; font-weight:500;
+  transition:all .2s; margin:2px 8px; border-radius:8px; white-space:nowrap;
+}
+.menu-item:hover { color:var(--text-primary); background:var(--bg-hover); }
+.menu-item.active { color:var(--accent-text); background:var(--bg-active); font-weight:600; }
+.menu-item .menu-icon { width:20px; height:20px; display:flex; align-items:center; justify-content:center; margin-right:12px; flex-shrink:0; font-size:15px; }
+.app-sidebar.collapsed .menu-item { padding:0 16px; justify-content:center; }
+.app-sidebar.collapsed .menu-item .menu-icon { margin-right:0; }
+.app-sidebar.collapsed .menu-item .menu-label { display:none; }
+.menu-divider { height:1px; background:var(--bg-hover-strong); margin:8px 20px; }
+.app-sidebar.collapsed .menu-divider { margin:8px 12px; }
+
+.menu-badge {
+  margin-left:auto; font-size:10px; padding:1px 7px; border-radius:10px;
+  background:rgba(99,102,241,0.25); color:var(--accent-text); font-weight:600;
+}
+.app-sidebar.collapsed .menu-badge { display:none; }
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding:14px 20px; border-top:1px solid var(--border-light); flex-shrink:0;
+  font-size:11px; color:var(--text-tertiary);
+}
+.sidebar-footer .user-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.sidebar-footer .user-avatar {
+  width:32px; height:32px; border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent-end));
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:12px; font-weight:700; flex-shrink:0;
+}
+.sidebar-footer .user-name { font-size:12px; font-weight:600; color:var(--text-secondary); }
+.sidebar-footer .user-status { font-size:10px; color:var(--green); }
+.sidebar-footer .version { font-size:10px; color:var(--text-disabled); }
+.app-sidebar.collapsed .sidebar-footer { text-align:center; padding:12px; }
+.app-sidebar.collapsed .sidebar-footer .user-row { justify-content:center; }
+.app-sidebar.collapsed .sidebar-footer .user-info,
+.app-sidebar.collapsed .sidebar-footer .version { display:none; }
+
+/* ====== MAIN AREA ====== */
+.app-main { flex:1; display:flex; flex-direction:column; min-width:0; background:var(--bg-main); }
+
+/* Header */
+.app-header {
+  height:56px; background:var(--bg-header); display:flex; align-items:center; padding:0 20px;
+  border-bottom:1px solid var(--border-header); flex-shrink:0; z-index:9;
+}
+.header-left { display:flex; align-items:center; gap:12px; }
+.header-trigger {
+  width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+  border-radius:6px; cursor:pointer; transition:background .2s; color:var(--text-secondary);
+  background:none; border:none; font-size:16px;
+}
+.header-trigger:hover { background:var(--bg-hover-strong); color:var(--text-primary); }
+.header-breadcrumb { color:var(--text-tertiary); font-size:13px; }
+.header-breadcrumb span { color:var(--text-primary); }
+
+.header-right { margin-left:auto; display:flex; align-items:center; gap:8px; }
+.header-search {
+  width:200px; height:34px; background:var(--bg-input); border:1px solid var(--border-default); border-radius:6px;
+  padding:0 12px; color:var(--text-primary); font-size:13px; outline:none; transition:border-color .2s;
+}
+.header-search:focus { border-color:var(--accent); }
+.header-search::placeholder { color:var(--text-placeholder); }
+.header-btn {
+  width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+  border-radius:6px; cursor:pointer; transition:all .2s; color:var(--text-secondary);
+  border:none; background:transparent; font-size:16px;
+}
+.header-btn:hover { background:var(--bg-hover-strong); color:var(--text-primary); }
+.header-avatar {
+  width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent-end));
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  font-size:12px; color:#fff; font-weight:700; border:none;
+}
+
+/* Content */
+.app-content { flex:1; overflow-y:auto; padding:24px; }
+.page-header { margin-bottom:24px; }
+.page-header h2 { font-size:20px; font-weight:600; color:var(--text-primary); margin-bottom:4px; }
+.page-header p { font-size:13px; color:var(--text-secondary); }
+
+/* Cards */
+.card { background:var(--bg-card); border:1px solid var(--border-default); border-radius:10px; overflow:hidden; }
+.card-header { padding:14px 20px; border-bottom:1px solid var(--border-default); display:flex; align-items:center; justify-content:space-between; }
+.card-header h3 { font-size:14px; font-weight:600; color:var(--text-primary); }
+.card-body { padding:20px; }
+
+/* Stats Grid */
+.stats-grid { display:grid; grid-template-columns: repeat(4,1fr); gap:14px; margin-bottom:24px; }
+.stat-card {
+  background:var(--bg-card); border:1px solid var(--border-default); border-radius:10px; padding:18px;
+  transition:border-color .2s;
+}
+.stat-card:hover { border-color:var(--accent); }
+.stat-card .stat-title { font-size:12px; color:var(--text-secondary); margin-bottom:10px; }
+.stat-card .stat-value { font-size:26px; font-weight:700; color:var(--text-primary); margin-bottom:6px; }
+.stat-card .stat-change { font-size:12px; display:flex; align-items:center; gap:4px; }
+.stat-change.up { color:var(--red); }
+.stat-change.down { color:var(--green); }
+.stat-icon {
+  width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  font-size:18px; margin-bottom:10px;
+}
+
+.charts-grid { display:grid; grid-template-columns: 2fr 1fr; gap:14px; margin-bottom:24px; }
+.charts-grid-2col { display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:24px; }
+.chart-box { width:100%; height:320px; }
+
+/* Tags */
+.tag { display:inline-flex; align-items:center; padding:2px 10px; border-radius:4px; font-size:11px; font-weight:600; }
+.tag-teal { background:var(--accent-soft); color:var(--accent-text); }
+.tag-blue { background:var(--blue-soft); color:var(--blue); }
+.tag-green { background:var(--green-soft); color:var(--green); }
+.tag-red { background:var(--red-soft); color:var(--red); }
+.tag-amber { background:var(--amber-soft); color:var(--amber); }
+
+/* Progress */
+.progress-bar { width:100%; height:4px; background:var(--border-default); border-radius:2px; overflow:hidden; margin-top:4px; }
+.progress-fill { height:100%; border-radius:2px; transition:width .5s; }
+
+/* Tables */
+.data-table { width:100%; border-collapse:collapse; font-size:12px; }
+.data-table th {
+  text-align:left; padding:10px 14px; font-size:11px; font-weight:600;
+  color:var(--text-tertiary); border-bottom:1px solid var(--border-default); background:var(--bg-elevated);
+}
+.data-table td {
+  padding:10px 14px; font-size:13px; color:var(--text-primary); border-bottom:1px solid var(--border-lighter);
+}
+.data-table tr:hover td { background:var(--bg-hover); }
+.price-up { color:var(--red); }
+.price-down { color:var(--green); }
+
+/* Action Bar */
+.action-bar {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 18px; background:var(--bg-elevated); border:1px solid var(--border-default); border-radius:10px;
+  margin-bottom:20px; flex-wrap:wrap;
+}
+.action-bar label { font-size:12px; font-weight:600; color:var(--text-secondary); white-space:nowrap; }
+.action-input {
+  padding:7px 12px; border:1px solid var(--border-default); border-radius:6px;
+  font-size:13px; background:var(--bg-input); color:var(--text-primary);
+  outline:none; transition:border-color .2s; font-family:inherit;
+}
+.action-input:focus { border-color:var(--accent); }
+.action-select {
+  padding:7px 10px; border:1px solid var(--border-default); border-radius:6px;
+  font-size:13px; background:var(--bg-input); color:var(--text-primary);
+  cursor:pointer; outline:none; font-family:inherit;
+}
+.action-select:focus { border-color:var(--accent); }
+
+.btn-primary {
+  padding:8px 20px; border:none; border-radius:6px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-end)); color:#fff; font-size:13px; font-weight:600;
+  cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:6px;
+}
+.btn-primary:hover { opacity:.9; transform:translateY(-1px); box-shadow:0 4px 12px rgba(99,102,241,.3); }
+.btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+.btn-secondary {
+  padding:8px 16px; border:1px solid var(--border-default); border-radius:6px;
+  background:var(--bg-card); color:var(--text-secondary); font-size:13px; font-weight:500;
+  cursor:pointer; transition:all .2s; font-family:inherit;
+}
+.btn-secondary:hover { background:var(--bg-hover-strong); border-color:var(--accent); }
+
+/* Pages */
+.page-view { display:none; }
+.page-view.active { display:block; }
+
+/* Metrics Grid */
+.metrics-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap:10px; margin-bottom:14px; }
+.metric-card {
+  padding:12px 14px; border-radius:8px; background:var(--bg-elevated); border:1px solid var(--border-lighter);
+}
+.metric-label { font-size:10px; color:var(--text-tertiary); font-weight:500; margin-bottom:4px; text-transform:uppercase; letter-spacing:.3px; }
+.metric-value { font-size:20px; font-weight:700; color:var(--text-primary); }
+.metric-value.positive { color:var(--green); }
+.metric-value.negative { color:var(--red); }
+.metric-sub { font-size:10px; color:var(--text-muted); margin-top:2px; }
+
+/* Debate cards */
+.debate-row { display:flex; gap:12px; margin-bottom:10px; }
+.debate-bull { flex:1; padding:12px; border-radius:8px; background:var(--bg-bull); border:1px solid rgba(16,185,129,0.2); }
+.debate-bull .debate-label { font-size:11px; font-weight:600; color:var(--green); margin-bottom:6px; }
+.debate-bull .debate-content { font-size:12px; line-height:1.5; color:var(--text-secondary); }
+.debate-bear { flex:1; padding:12px; border-radius:8px; background:var(--bg-bear); border:1px solid rgba(239,68,68,0.2); }
+.debate-bear .debate-label { font-size:11px; font-weight:600; color:var(--red); margin-bottom:6px; }
+.debate-bear .debate-content { font-size:12px; line-height:1.5; color:var(--text-secondary); }
+
+/* Chat Area */
+.chat-area {
+  flex-shrink:0; border-top:1px solid var(--border-header); background:var(--bg-header);
+  padding:12px 20px 14px;
+}
+.chat-messages { max-height:180px; overflow-y:auto; margin-bottom:10px; display:none; }
+.chat-messages.show { display:block; }
+.msg { padding:6px 0; font-size:13px; line-height:1.5; }
+.msg-user { color:var(--text-primary); font-weight:550; }
+.msg-assistant { color:var(--text-secondary); }
+.msg-system { color:var(--text-tertiary); font-style:italic; font-size:12px; }
+.msg-error { color:var(--red); }
+
+.input-box {
+  background:var(--bg-input); border:1px solid var(--border-default);
+  border-radius:10px; padding:10px 14px; transition:border-color .2s;
+}
+.input-box:focus-within { border-color:var(--accent); }
+.input-textarea {
+  width:100%; min-height:36px; max-height:100px; border:none; resize:none;
+  background:none; font-size:13px; line-height:1.5; color:var(--text-primary);
+  font-family:inherit; outline:none; padding:2px 0;
+}
+.input-textarea::placeholder { color:var(--text-placeholder); }
+
+.input-toolbar {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:6px; padding-top:6px; border-top:1px solid var(--border-lighter);
+}
+.toolbar-left { display:flex; align-items:center; gap:4px; }
+.toolbar-right { display:flex; align-items:center; gap:4px; }
+.tb-btn {
+  display:flex; align-items:center; gap:4px;
+  padding:3px 8px; border:none; border-radius:4px;
+  background:none; cursor:pointer; font-size:11px; color:var(--text-tertiary);
+  transition:all .2s; font-family:inherit;
+}
+.tb-btn:hover { background:var(--bg-hover); color:var(--text-secondary); }
+.tb-divider { width:1px; height:16px; background:var(--border-default); margin:0 3px; }
+.send-btn {
+  width:30px; height:30px; border-radius:50%;
+  border:none; background:linear-gradient(135deg,var(--accent),var(--accent-end)); color:#fff;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .2s; font-size:14px;
+}
+.send-btn:hover { opacity:.85; transform:scale(1.05); }
+.send-btn:disabled { opacity:.3; cursor:not-allowed; transform:none; }
+
+.input-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:6px; font-size:10px; color:var(--text-disabled);
+}
+
+/* Loading */
+.loading-dots { display:inline-flex; gap:3px; }
+.loading-dots span {
+  width:4px; height:4px; border-radius:50%;
+  background:var(--accent); animation:dotBounce 1.2s infinite;
+}
+.loading-dots span:nth-child(2) { animation-delay:.2s; }
+.loading-dots span:nth-child(3) { animation-delay:.4s; }
+@keyframes dotBounce { 0%,80%,100% { transform:scale(.6); opacity:.4; } 40% { transform:scale(1); opacity:1; } }
+
+.spinner {
+  display:inline-block; width:14px; height:14px; border:2px solid var(--border-default);
+  border-top-color:var(--accent); border-radius:50%;
+  animation:spin .6s linear infinite; vertical-align:middle; margin-right:6px;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Empty State */
+.empty-state {
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:60px 20px; color:var(--text-muted);
+}
+.empty-state svg { width:64px; height:64px; margin-bottom:12px; opacity:.3; }
+.empty-state p { font-size:14px; }
+
+/* Settings */
+.setting-group { margin-bottom:24px; }
+.setting-group-title {
+  font-size:14px; font-weight:600; color:var(--text-primary);
+  margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border-lighter);
+}
+.setting-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 0; border-bottom:1px solid var(--border-header);
+}
+.setting-label { font-size:13px; color:var(--text-secondary); }
+.setting-desc { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.setting-control { display:flex; align-items:center; gap:8px; }
+.setting-input {
+  padding:6px 10px; border:1px solid var(--border-default); border-radius:6px;
+  font-size:12px; background:var(--bg-input); color:var(--text-primary);
+  width:220px; font-family:inherit; outline:none;
+}
+.setting-input:focus { border-color:var(--accent); }
+.toggle-switch {
+  width:36px; height:20px; border-radius:10px; background:var(--toggle-bg);
+  position:relative; cursor:pointer; transition:background .2s;
+}
+.toggle-switch.on { background:var(--accent); }
+.toggle-switch::after {
+  content:''; position:absolute; top:2px; left:2px;
+  width:16px; height:16px; border-radius:50%; background:#fff;
+  transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.toggle-switch.on::after { left:18px; }
+
+/* ====== ANIMATIONS ====== */
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.fade-in { animation:fadeIn .35s ease-out; }
+
+/* ====== RESPONSIVE ====== */
+@media (max-width:768px) {
+  .app-sidebar { position:fixed; left:-260px; top:0; bottom:0; z-index:1000; }
+  .app-sidebar.open { left:0; }
+  .stats-grid { grid-template-columns: repeat(2,1fr); }
+  .charts-grid, .charts-grid-2col { grid-template-columns: 1fr; }
+}
+
+/* Code Block */
+.code-block {
+  background:var(--code-bg); border:1px solid var(--code-border); border-radius:8px;
+  padding:16px; font-family:'SF Mono','Fira Code','Consolas',monospace;
+  font-size:12px; line-height:1.6; color:var(--code-text); overflow-x:auto;
+}
+.code-block .kw { color:#569cd6; }
+.code-block .cls { color:#4ec9b0; }
+.code-block .fn { color:#dcdcaa; }
+.code-block .cmt { color:#6a9955; }
+
+/* Theme transition */
+.app-sidebar, .app-main, .app-header, .chat-area,
+.card, .stat-card, .btn-secondary, .action-input, .action-select, .setting-input, .input-box,
+.sidebar-logo, .sidebar-footer, .page-header, .data-table th, .data-table td {
+  transition: background .3s, border-color .3s, color .3s;
+}
+/* ====== AUTH MODAL ====== */
+.auth-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center;
+  z-index:9999;
+}
+[data-theme="light"] .auth-overlay { background:rgba(0,0,0,0.45); }
+.auth-overlay.show { display:flex; animation:fadeIn .25s ease-out; }
+.auth-card {
+  width:380px; max-width:92vw; background:var(--bg-card); border:1px solid var(--border-default);
+  border-radius:14px; padding:28px; box-shadow:0 20px 50px rgba(0,0,0,.4);
+}
+.auth-card .auth-logo {
+  display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:18px;
+}
+.auth-card .auth-logo svg { width:36px; height:36px; }
+.auth-card .auth-logo-text { font-size:22px; font-weight:700; color:var(--accent); letter-spacing:-.5px; }
+.auth-card h2 {
+  font-size:16px; font-weight:600; color:var(--text-primary); margin-bottom:6px; text-align:center;
+}
+.auth-card .auth-sub { font-size:12px; color:var(--text-secondary); text-align:center; margin-bottom:22px; }
+.auth-tabs {
+  display:flex; background:var(--bg-elevated); border:1px solid var(--border-lighter);
+  border-radius:8px; padding:3px; margin-bottom:18px;
+}
+.auth-tab {
+  flex:1; padding:7px 0; text-align:center; font-size:13px; font-weight:500;
+  color:var(--text-secondary); cursor:pointer; border-radius:6px; transition:all .2s;
+  background:none; border:none; font-family:inherit;
+}
+.auth-tab.active { background:var(--bg-card); color:var(--text-primary); font-weight:600; }
+.auth-field { margin-bottom:14px; }
+.auth-field label {
+  display:block; font-size:11px; font-weight:600; color:var(--text-tertiary);
+  margin-bottom:6px; text-transform:uppercase; letter-spacing:.3px;
+}
+.auth-field input {
+  width:100%; padding:10px 12px; border:1px solid var(--border-default); border-radius:8px;
+  font-size:13px; background:var(--bg-input); color:var(--text-primary);
+  font-family:inherit; outline:none; transition:border-color .2s;
+}
+.auth-field input:focus { border-color:var(--accent); }
+.auth-error {
+  background:var(--red-soft); border:1px solid rgba(239,68,68,0.3); color:var(--red);
+  padding:8px 12px; border-radius:6px; font-size:12px; margin-bottom:14px; display:none;
+}
+.auth-error.show { display:block; }
+.auth-submit {
+  width:100%; padding:11px; border:none; border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-end)); color:#fff;
+  font-size:14px; font-weight:600; cursor:pointer; transition:all .2s;
+  font-family:inherit; margin-top:4px;
+}
+.auth-submit:hover { opacity:.92; transform:translateY(-1px); box-shadow:0 6px 16px rgba(99,102,241,.35); }
+.auth-submit:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+.auth-footer {
+  text-align:center; margin-top:14px; font-size:11px; color:var(--text-tertiary);
+}
+
+/* Account dropdown */
+.account-menu {
+  position:absolute; right:20px; top:60px; min-width:200px;
+  background:var(--bg-card); border:1px solid var(--border-default); border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.3); padding:6px; z-index:9000; display:none;
+}
+.account-menu.show { display:block; animation:fadeIn .15s ease-out; }
+.account-menu .am-header { padding:10px 12px; border-bottom:1px solid var(--border-lighter); margin-bottom:4px; }
+.account-menu .am-name { font-size:13px; font-weight:600; color:var(--text-primary); }
+.account-menu .am-meta { font-size:11px; color:var(--text-tertiary); margin-top:2px; }
+.account-menu .am-item {
+  display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:6px;
+  font-size:13px; color:var(--text-secondary); cursor:pointer; transition:background .15s;
+}
+.account-menu .am-item:hover { background:var(--bg-hover); color:var(--text-primary); }
+.account-menu .am-item.danger { color:var(--red); }
+.account-menu .am-item.danger:hover { background:var(--red-soft); }
+
+.auth-hint {
+  margin-top:14px; padding:12px 14px; border-radius:8px;
+  background:var(--accent-soft); border:1px solid rgba(99,102,241,0.3);
+  font-size:12px; color:var(--text-secondary); position:relative;
+}
+.auth-hint strong { display:block; color:var(--accent-text); font-size:12px; margin-bottom:6px; }
+.auth-hint div { line-height:1.7; }
+.auth-hint code {
+  background:var(--bg-elevated); padding:1px 6px; border-radius:4px;
+  font-family:'SF Mono','Consolas',monospace; color:var(--text-primary); font-size:12px;
+}
+.auth-hint-fill {
+  position:absolute; top:10px; right:10px;
+  padding:3px 10px; border-radius:5px; font-size:11px; font-weight:600;
+  border:1px solid var(--accent); background:transparent; color:var(--accent-text);
+  cursor:pointer; transition:all .15s; font-family:inherit;
+}
+.auth-hint-fill:hover { background:var(--accent); color:#fff; }
+
+</style>
+</head>
+<body>
+
+<!-- ====== AUTH MODAL ====== -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="url(#al-grad)"/>
+        <path d="M10 22L16 8L22 22" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12.5 17H19.5" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <defs><linearGradient id="al-grad" x1="0" y1="0" x2="32" y2="32"><stop offset="0" stop-color="#6366F1"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>
+      </svg>
+      <span class="auth-logo-text">Alphalith</span>
+    </div>
+    <h2 id="authTitle">登录到 Alphalith</h2>
+    <p class="auth-sub" id="authSub">AI 多智能体投研引擎</p>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" data-tab="login">登录</button>
+      <button class="auth-tab" id="tabRegister" data-tab="register">注册</button>
+    </div>
+
+    <div class="auth-error" id="authError"></div>
+
+    <form id="authForm" autocomplete="off">
+      <div class="auth-field" id="fieldDisplay" style="display:none">
+        <label>显示名称（选填）</label>
+        <input type="text" id="authDisplay" placeholder="例如：Eason" maxlength="32">
+      </div>
+      <div class="auth-field">
+        <label>用户名</label>
+        <input type="text" id="authUsername" placeholder="字母数字下划线，2-32 位" maxlength="32" autocomplete="username">
+      </div>
+      <div class="auth-field">
+        <label>密码</label>
+        <input type="password" id="authPassword" placeholder="至少 6 位" maxlength="128" autocomplete="current-password">
+      </div>
+      <button type="submit" class="auth-submit" id="authSubmit">登 录</button>
+    </form>
+
+    <div class="auth-hint" id="authHint" style="display:none">
+      <strong>默认账号</strong>
+      <div>用户名：<code>admin</code></div>
+      <div>密码：<code>alphalith</code></div>
+      <button type="button" class="auth-hint-fill" id="authHintFill">一键填入</button>
+    </div>
+
+    <div class="auth-footer" id="authFooter">本地账户，密码以 PBKDF2-SHA256 加盐存储于 ~/.alphalith/users.json</div>
+  </div>
+</div>
+
+<!-- ====== ACCOUNT MENU ====== -->
+<div class="account-menu" id="accountMenu">
+  <div class="am-header">
+    <div class="am-name" id="amName">—</div>
+    <div class="am-meta" id="amMeta">—</div>
+  </div>
+  <div class="am-item" onclick="switchPage('settings'); closeAccountMenu()">⚙️ 系统配置</div>
+  <div class="am-item" onclick="switchPage('history'); closeAccountMenu()">🕐 决策历史</div>
+  <div class="am-item danger" onclick="logout()">🚪 退出登录</div>
+</div>
+
+<div class="app-layout">
+  <!-- ====== SIDEBAR ====== -->
+  <aside class="app-sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#6366F1"/><text x="16" y="22" text-anchor="middle" fill="#fff" font-size="16" font-weight="bold">A</text></svg>
+      <div><span class="logo-text">Alphalith</span><span class="logo-sub">v0.2.0</span></div>
+    </div>
+    <nav class="sidebar-menu-wrap" id="sidebarMenu">
+      <div class="menu-item active" data-page="research">
+        <span class="menu-icon">🔍</span>
+        <span class="menu-label">投研分析</span>
+      </div>
+      <div class="menu-item" data-page="backtest">
+        <span class="menu-icon">📈</span>
+        <span class="menu-label">策略回测</span>
+      </div>
+      <div class="menu-item" data-page="dashboard">
+        <span class="menu-icon">📊</span>
+        <span class="menu-label">投研面板</span>
+      </div>
+      <div class="menu-item" data-page="signals">
+        <span class="menu-icon">📡</span>
+        <span class="menu-label">信号面板</span>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" data-page="history">
+        <span class="menu-icon">🕐</span>
+        <span class="menu-label">决策历史</span>
+        <span class="menu-badge" id="histBadge" style="display:none">0</span>
+      </div>
+      <div class="menu-item" data-page="compare">
+        <span class="menu-icon">⚖️</span>
+        <span class="menu-label">对比分析</span>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" data-page="settings">
+        <span class="menu-icon">⚙️</span>
+        <span class="menu-label">系统配置</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row" id="userRow" style="cursor:pointer" title="点击管理账户">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">未登录</div>
+          <div class="user-status" id="userStatus">● 请先登录</div>
+        </div>
+      </div>
+      <div class="version">Alphalith v0.2.0 · AI 投研引擎</div>
+    </div>
+  </aside>
+
+  <!-- ====== MAIN ====== -->
+  <div class="app-main">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <button class="header-trigger" onclick="toggleSidebar()" title="折叠菜单">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="header-breadcrumb">Alphalith / <span id="breadcrumb">投研分析</span></div>
+      </div>
+      <div class="header-right">
+        <input type="text" class="header-search" placeholder="搜索标的、策略..." id="headerSearch" onkeydown="if(event.key==='Enter')quickSearch()">
+        <button class="header-btn" title="通知">🔔</button>
+        <button class="header-btn" title="设置" onclick="switchPage('settings')">⚙️</button>
+        <button class="header-btn" id="themeBtn" title="切换主题">🌙</button>
+        <div class="header-avatar" id="headerAvatar" title="账户" onclick="showAccountMenu()">?</div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="app-content" id="appContent">
+
+<!-- ====== 投研分析 ====== -->
+<div class="page-view active fade-in" id="page-research">
+  <div class="page-header">
+    <h2>🔍 投研分析</h2>
+    <p>多智能体 ADP 分析管道：四分析师 → 多空辩论 → 风险评审 → 投资决策。支持单标的或多标的批量（空格 / 逗号分隔）。</p>
+  </div>
+  <div class="action-bar">
+    <label>标的</label>
+    <input type="text" class="action-input" id="researchSymbol" placeholder="单个: 腾讯  |  批量: 腾讯 阿里 美团" style="width:320px">
+    <label>深度</label>
+    <select class="action-select" id="researchDepth">
+      <option value="quick">Quick — 仅分析师</option>
+      <option value="standard" selected>Standard — 1 轮辩论</option>
+      <option value="deep">Deep — 3 轮辩论</option>
+    </select>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input type="checkbox" id="researchStream" checked style="cursor:pointer"> 实时辩论
+    </label>
+    <button class="btn-primary" id="btnAnalyze" onclick="runAnalyze()">▶ 开始分析</button>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="stats-grid" id="researchStats">
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(99,102,241,0.15);color:#A5B4FC;">📊</div><div class="stat-title">分析次数</div><div class="stat-value" id="statCount">-</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(16,185,129,0.15);color:#6EE7B7;">✅</div><div class="stat-title">看多信号</div><div class="stat-value" id="statBull">-</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,0.15);color:#FCA5A5;">⚠️</div><div class="stat-title">看空信号</div><div class="stat-value" id="statBear">-</div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,0.15);color:#FCD34D;">📋</div><div class="stat-title">历史记录</div><div class="stat-value" id="statHist">-</div></div>
+  </div>
+
+  <!-- 进度区（运行时显示） -->
+  <div id="researchProgress" style="display:none"></div>
+
+  <div class="result-area" id="researchResult">
+    <div class="empty-state">
+      <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2"/><path d="M22 42V26l10-8 10 8v16" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <p>输入标的代码并点击「开始分析」</p>
+      <p style="margin-top:4px;font-size:12px">支持单个或多个标的。多个标的将顺序执行并汇总。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 策略回测 ====== -->
+<div class="page-view fade-in" id="page-backtest">
+  <div class="page-header">
+    <h2>📈 策略回测</h2>
+    <p>7 种内置策略，可勾选多个并行回测对比。完整 9 项风险指标。</p>
+  </div>
+  <div class="action-bar">
+    <label>标的</label>
+    <input type="text" class="action-input" id="btSymbol" placeholder="如：600519、寒武纪-U" style="width:160px">
+    <label>周期(天)</label>
+    <input type="number" class="action-input" id="btDays" value="180" style="width:80px">
+    <label>持有期</label>
+    <input type="number" class="action-input" id="btHorizon" value="10" style="width:70px">
+    <button class="btn-primary" id="btnBacktest" onclick="runBacktest()">▶ 运行回测</button>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-header"><h3>策略组合（可多选）</h3>
+      <span style="font-size:11px;color:var(--text-tertiary)">勾选 2 个及以上将并行回测并对比</span>
+    </div>
+    <div class="card-body" id="btStrategyBox" style="display:flex;flex-wrap:wrap;gap:14px"></div>
+  </div>
+  <div id="backtestProgress" style="display:none"></div>
+  <div class="result-area" id="backtestResult">
+    <div class="empty-state">
+      <svg viewBox="0 0 64 64" fill="none"><rect x="8" y="20" width="48" height="32" rx="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M14 40 L24 30 L34 36 L44 22 L50 28" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <p>勾选策略后点击「运行回测」</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 投研面板 (Dashboard) ====== -->
+<div class="page-view fade-in" id="page-dashboard">
+  <div class="page-header">
+    <h2>📊 投研面板</h2>
+    <p>一键生成自包含 HTML：行情卡片 / 策略信号矩阵 / 回测热力图 / 决策时间线。</p>
+  </div>
+  <div class="action-bar">
+    <label>监控标的</label>
+    <input type="text" class="action-input" id="dashSymbols" value="600519,0700.HK,NVDA" placeholder="逗号分隔" style="width:360px">
+    <button class="btn-primary" onclick="runDashboard()">▶ 生成面板</button>
+    <button class="btn-secondary" onclick="downloadDashboard()" id="btnDashDownload" style="display:none">⬇ 下载 HTML</button>
+  </div>
+  <div id="dashProgress" style="display:none"></div>
+  <div class="result-area" id="dashboardResult">
+    <div class="empty-state">
+      <p>输入要监控的标的，点击「生成面板」</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 信号面板 ====== -->
+<div class="page-view fade-in" id="page-signals">
+  <div class="page-header">
+    <h2>📡 信号面板</h2>
+    <p>多智能体综合信号视图</p>
+  </div>
+  <div class="action-bar">
+    <label>标的</label>
+    <input type="text" class="action-input" id="sigSymbol" placeholder="如：600519" style="width:160px">
+    <button class="btn-primary" onclick="loadSignals()">▶ 获取信号</button>
+  </div>
+  <div class="result-area" id="signalsResult">
+    <div class="empty-state">
+      <p>暂无信号数据</p>
+      <p style="margin-top:4px;font-size:12px">执行「投研分析」后将自动填充</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 决策历史 ====== -->
+<div class="page-view fade-in" id="page-history">
+  <div class="page-header">
+    <h2>🕐 决策历史</h2>
+    <p>查看过往分析记录和统计摘要</p>
+  </div>
+  <div class="action-bar">
+    <label>筛选标的</label>
+    <input type="text" class="action-input" id="histSymbol" placeholder="留空显示全部" style="width:160px">
+    <label>条数</label>
+    <input type="number" class="action-input" id="histLimit" value="20" style="width:70px">
+    <button class="btn-primary" onclick="loadHistory()">加载历史</button>
+    <button class="btn-secondary" onclick="loadReview()">审查统计</button>
+  </div>
+  <div class="result-area" id="histResult">
+    <div class="empty-state"><p>暂无历史记录</p></div>
+  </div>
+</div>
+
+<!-- ====== 对比分析 ====== -->
+<div class="page-view fade-in" id="page-compare">
+  <div class="page-header">
+    <h2>⚖️ 对比分析</h2>
+    <p>多标的策略回测对比</p>
+  </div>
+  <div class="action-bar">
+    <label>标的列表</label>
+    <input type="text" class="action-input" id="cmpSymbols" placeholder="用空格分隔：腾讯 阿里" style="width:260px">
+    <label>策略</label>
+    <select class="action-select" id="cmpStrategy">
+      <option value="ma_cross">MA 均线交叉</option>
+      <option value="momentum" selected>动量策略</option>
+      <option value="mean_reversion">均值回归</option>
+      <option value="bollinger">布林带突破</option>
+      <option value="rsi">RSI 超买超卖</option>
+    </select>
+    <label>周期</label>
+    <input type="number" class="action-input" id="cmpDays" value="180" style="width:80px">
+    <button class="btn-primary" onclick="runCompare()">▶ 对比分析</button>
+  </div>
+  <div class="charts-grid-2col" id="cmpCharts"></div>
+  <div class="result-area" id="cmpResult"></div>
+</div>
+
+<!-- ====== 系统配置 ====== -->
+<div class="page-view fade-in" id="page-settings">
+  <div class="page-header">
+    <h2>⚙️ 系统配置</h2>
+    <p>模型与运行时参数调整</p>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="setting-group">
+        <div class="setting-group-title">LLM 模型</div>
+        <div class="setting-row">
+          <div><div class="setting-label">API Base URL</div><div class="setting-desc">LLM 服务端点地址</div></div>
+          <div class="setting-control"><input class="setting-input" id="setApiBase" placeholder="默认 DeepSeek"></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">API Key</div><div class="setting-desc">通过环境变量 DEEPSEEK_API_KEY 设置</div></div>
+          <div class="setting-control"><input class="setting-input" id="setApiKey" type="password" value="••••••••" placeholder="已配置"></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">模型名称</div><div class="setting-desc">当前使用 deepseek-chat</div></div>
+          <div class="setting-control"><input class="setting-input" id="setModel" value="deepseek-chat" readonly style="opacity:.5"></div>
+        </div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-group-title">分析参数</div>
+        <div class="setting-row">
+          <div><div class="setting-label">默认分析深度</div></div>
+          <div class="setting-control">
+            <select class="setting-input" id="setDefaultDepth" style="cursor:pointer">
+              <option value="quick">Quick — 仅分析师</option>
+              <option value="standard" selected>Standard — 1 轮辩论</option>
+              <option value="deep">Deep — 3 轮辩论</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="setting-group">
+        <div class="setting-group-title">回测默认参数</div>
+        <div class="setting-row">
+          <div><div class="setting-label">默认回测天数</div></div>
+          <div class="setting-control"><input class="setting-input" id="setDefaultDays" type="number" value="180" style="width:80px"></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">默认持有期</div></div>
+          <div class="setting-control"><input class="setting-input" id="setDefaultHorizon" type="number" value="10" style="width:80px"></div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="saveSettings()">💾 保存配置</button>
+    </div>
+  </div>
+</div>
+
+    </main>
+
+    <!-- ====== CHAT AREA ====== -->
+    <div class="chat-area" id="chatArea">
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="input-box">
+        <textarea class="input-textarea" id="chatInput"
+          placeholder="今天想做什么？输入标的代码或 /命令，例如：分析腾讯、/backtest 寒武纪 动量 180"
+          rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+        <div class="input-toolbar">
+          <div class="toolbar-left">
+            <button class="tb-btn" id="modeBtn" onclick="cycleMode()">✨ Craft</button>
+            <button class="tb-btn" id="depthBtn" onclick="cycleDepth()">Auto ▾</button>
+            <div class="tb-divider"></div>
+            <button class="tb-btn" onclick="clearChat()" title="清空对话">🗑️</button>
+          </div>
+          <div class="toolbar-right">
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+          </div>
+        </div>
+        <div class="input-footer">
+          <span>内容由 AI 生成，请核实重要信息</span>
+          <span>Alphalith v0.2.0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const S = {
+  currentPage: 'research',
+  modeIndex: 0,
+  modes: ['Craft','Plan','Ask'],
+  depthIndex: 0,
+  depths: ['quick','standard','deep'],
+  depthLabels: ['Quick','Standard','Deep'],
+  chatHistory: [],
+  chartInstances: {},
+};
+
+const pageTitles = {
+  research:'投研分析', backtest:'策略回测', dashboard:'投研面板',
+  signals:'信号面板', history:'决策历史', compare:'对比分析', settings:'系统配置'
+};
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function switchPage(page) {
+  document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+  const nav = document.querySelector(`.menu-item[data-page="${page}"]`);
+  if (nav) nav.classList.add('active');
+  document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) pageEl.classList.add('active');
+  S.currentPage = page;
+  document.getElementById('breadcrumb').textContent = pageTitles[page] || page;
+  setTimeout(disposeCharts, 50);
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+function quickSearch() {
+  const q = document.getElementById('headerSearch').value.trim();
+  if (!q) return;
+  fillInput('/analyze ' + q);
+}
+
+function fillInput(text) {
+  document.getElementById('chatInput').value = text;
+  document.getElementById('chatInput').focus();
+  switchPage('research');
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+function handleKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
+function cycleMode() { S.modeIndex=(S.modeIndex+1)%S.modes.length; document.getElementById('modeBtn').innerHTML='✨ '+S.modes[S.modeIndex]; }
+function cycleDepth() { S.depthIndex=(S.depthIndex+1)%S.depths.length; document.getElementById('depthBtn').textContent=S.depthLabels[S.depthIndex]+' ▾'; }
+function clearChat() { document.getElementById('chatMessages').innerHTML=''; document.getElementById('chatMessages').classList.remove('show'); S.chatHistory=[]; }
+
+function addMsg(content, role) {
+  const c = document.getElementById('chatMessages');
+  const d = document.createElement('div');
+  d.className = 'msg msg-'+role;
+  d.innerHTML = String(content).replace(/\n/g,'<br>');
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+  c.classList.add('show');
+  S.chatHistory.push({role,content});
+}
+
+function addTyping(id) {
+  const c = document.getElementById('chatMessages');
+  const d = document.createElement('div');
+  d.className = 'msg msg-assistant'; d.id = id;
+  d.innerHTML = '<span class="loading-dots"><span></span><span></span><span></span></span> 思考中...';
+  c.appendChild(d); c.scrollTop=c.scrollHeight; c.classList.add('show');
+}
+function rmTyping(id) { const e=document.getElementById(id); if(e)e.remove(); }
+
+async function sendMessage() {
+  const inp = document.getElementById('chatInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  addMsg(text, 'user');
+  inp.value = ''; autoResize(inp);
+
+  try {
+    if (text.startsWith('/batch') || text.includes('批量')) { await handleBatchReq(text); }
+    else if (text.startsWith('/backtest') || /回测/.test(text)) { await handleBacktestReq(text); }
+    else if (text.startsWith('/analyze') || /(分析|推荐|评估)/.test(text)) { await handleAnalyzeReq(text); }
+    else if (text.startsWith('/compare') || text.includes('对比')) { await handleCompareReq(text); }
+    else if (text.startsWith('/signals') || text.includes('信号')) { await handleSignalsReq(text); }
+    else { await handleChat(text); }
+  } catch (err) {
+    addMsg('❌ ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// API HELPERS
+// ============================================================
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+async function apiGet(path) {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+
+// ============================================================
+// ANALYZE — 多标的、SSE 实时辩论、进度条、市场风险、ADP 导出
+// ============================================================
+function escHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function showProgress(boxId, pct, msg, log){
+  const el=document.getElementById(boxId); if(!el) return;
+  el.style.display='block';
+  el.innerHTML = `<div class="card" style="margin-bottom:12px"><div class="card-body" style="padding:14px 18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:13px;color:var(--text-secondary)">${escHtml(msg||'')}</span>
+      <span style="font-size:12px;color:var(--accent-text);font-weight:600">${pct}%</span></div>
+    <div style="height:6px;background:var(--bg-hover);border-radius:3px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--accent-end));transition:width .35s ease"></div></div>
+    ${log?`<div style="margin-top:10px;max-height:240px;overflow-y:auto;font-size:11px;color:var(--text-tertiary);line-height:1.7;white-space:pre-wrap;font-family:ui-monospace,monospace">${escHtml(log)}</div>`:''}
+    </div></div>`;
+}
+
+function hideProgress(boxId){
+  const el=document.getElementById(boxId);
+  if(el){ el.style.display='none'; el.innerHTML=''; }
+}
+
+async function runAnalyze() {
+  const raw = document.getElementById('researchSymbol').value.trim();
+  if (!raw) { addMsg('请输入标的代码', 'system'); return; }
+  const depth = document.getElementById('researchDepth').value;
+  const stream = document.getElementById('researchStream').checked;
+  const symbols = raw.split(/[\s,，]+/).filter(Boolean);
+  if (symbols.length === 1) {
+    if (stream) await doAnalyzeStream(symbols[0], depth);
+    else await doAnalyze(symbols[0], depth);
+  } else {
+    await doAnalyzeBatch(symbols, depth);
+  }
+}
+
+async function handleAnalyzeReq(text) {
+  const m = text.match(/(?:\/analyze\s+)?(.+)/);
+  if (!m) { addMsg('格式: /analyze 标的', 'system'); return; }
+  let depth = S.depths[S.depthIndex];
+  if (/快速|quick/i.test(text)) depth='quick';
+  if (/标准|standard/i.test(text)) depth='standard';
+  if (/深度|deep/i.test(text)) depth='deep';
+  document.getElementById('researchSymbol').value = m[1].trim();
+  document.getElementById('researchDepth').value = depth;
+  switchPage('research');
+  await runAnalyze();
+}
+
+async function doAnalyze(symbol, depth) {
+  showProgress('researchProgress', 10, '正在调用分析管道...');
+  const tid = 'typing-'+Date.now();
+  addTyping(tid);
+  try {
+    const data = await api('/api/analyze', { symbol, depth, persist:true });
+    rmTyping(tid);
+    showProgress('researchProgress', 100, '完成');
+    renderAnalyze(data);
+    updateBadges();
+    setTimeout(()=>hideProgress('researchProgress'), 800);
+    const stance = data.action || 'neutral';
+    addMsg('✅ '+symbol+' 分析完成 — '+stance+' (置信度:'+(data.confidence||0).toFixed(2)+')', 'assistant');
+  } catch (err) {
+    rmTyping(tid);
+    hideProgress('researchProgress');
+    addMsg('❌ 分析失败: '+err.message, 'error');
+    renderError('#researchResult', err.message);
+  }
+}
+
+async function doAnalyzeStream(symbol, depth) {
+  const tid = 'typing-'+Date.now();
+  addTyping(tid);
+  showProgress('researchProgress', 2, '建立 SSE 连接...', '');
+  let logBuf = '', analysts = [], debates = [], finalData = null;
+  const appendLog = (line) => { logBuf += (logBuf?'\n':'') + line; };
+  try {
+    const res = await fetch('/api/analyze/stream', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ symbol, depth, persist:true })
+    });
+    if (!res.ok || !res.body) throw new Error('HTTP '+res.status);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buf = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream:true });
+      const chunks = buf.split('\n\n');
+      buf = chunks.pop();
+      for (const chunk of chunks) {
+        if (!chunk.trim()) continue;
+        let event='message', data='';
+        for (const ln of chunk.split('\n')) {
+          if (ln.startsWith('event:')) event = ln.slice(6).trim();
+          else if (ln.startsWith('data:')) data += ln.slice(5).trim();
+        }
+        let parsed = {};
+        try { parsed = JSON.parse(data); } catch {}
+        if (event === 'progress') {
+          showProgress('researchProgress', parsed.pct||0, parsed.msg||'', logBuf);
+        } else if (event === 'quote') {
+          appendLog(`📡 行情已加载：${parsed.name||symbol}  价格 ${parsed.price||'-'}`);
+          showProgress('researchProgress', 15, '行情已加载', logBuf);
+        } else if (event === 'analyst') {
+          analysts.push(parsed);
+          appendLog(`🧑‍💼 [${parsed.name}] 立场=${parsed.stance}  ${(parsed.summary||'').slice(0,120)}`);
+          showProgress('researchProgress', parsed.pct||30, `分析师 ${parsed.name} 完成`, logBuf);
+        } else if (event === 'debate_bull') {
+          debates.push({ round: parsed.round, bull: parsed.text, bear: '' });
+          appendLog(`🐂 [Round ${parsed.round}] 看多: ${(parsed.text||'').slice(0,140)}`);
+          showProgress('researchProgress', parsed.pct||60, `第${parsed.round}轮 多方发言`, logBuf);
+        } else if (event === 'debate_bear') {
+          if (debates.length && !debates[debates.length-1].bear) debates[debates.length-1].bear = parsed.text;
+          else debates.push({ round: parsed.round, bull:'', bear: parsed.text });
+          appendLog(`🐻 [Round ${parsed.round}] 看空: ${(parsed.text||'').slice(0,140)}`);
+          showProgress('researchProgress', parsed.pct||70, `第${parsed.round}轮 空方反驳`, logBuf);
+        } else if (event === 'done') {
+          finalData = parsed;
+          showProgress('researchProgress', 100, '完成', logBuf);
+        } else if (event === 'error') {
+          throw new Error(parsed.message || '流式分析出错');
+        }
+      }
+    }
+    rmTyping(tid);
+    if (finalData) {
+      finalData.agent_reports = finalData.agent_reports || analysts;
+      finalData.debate = finalData.debate || debates;
+      renderAnalyze(finalData);
+      updateBadges();
+      addMsg('✅ '+symbol+' 分析完成 — '+(finalData.action||'neutral'), 'assistant');
+    }
+    setTimeout(()=>hideProgress('researchProgress'), 1500);
+  } catch (err) {
+    rmTyping(tid);
+    hideProgress('researchProgress');
+    addMsg('⚠️ 流式分析失败: '+err.message+'，回退到普通模式', 'system');
+    await doAnalyze(symbol, depth);
+  }
+}
+
+async function doAnalyzeBatch(symbols, depth) {
+  addMsg('🔄 开始批量分析 '+symbols.length+' 个标的...', 'system');
+  const results = [];
+  for (let i=0; i<symbols.length; i++) {
+    const sym = symbols[i];
+    showProgress('researchProgress', Math.round(i*100/symbols.length), `[${i+1}/${symbols.length}] ${sym}`);
+    try {
+      const data = await api('/api/analyze', { symbol:sym, depth, persist:true });
+      results.push({ symbol:sym, success:true, data });
+      addMsg('['+(i+1)+'/'+symbols.length+'] ✅ '+sym+' '+(data.action||'-'), 'assistant');
+    } catch (err) {
+      results.push({ symbol:sym, success:false, error:err.message });
+      addMsg('['+(i+1)+'/'+symbols.length+'] ❌ '+sym+': '+err.message, 'error');
+    }
+  }
+  hideProgress('researchProgress');
+  renderAnalyzeBatch(results);
+  updateBadges();
+  addMsg('🏁 批量分析完成: '+results.filter(r=>r.success).length+'/'+symbols.length, 'assistant');
+}
+
+function renderAnalyzeBatch(results) {
+  const ok = results.filter(r=>r.success).length;
+  const rows = results.map((r,i) => `
+    <tr>
+      <td>${i+1}</td><td><strong>${escHtml(r.symbol)}</strong></td>
+      <td><span class="tag tag-${r.success?(r.data.action&&r.data.action.includes('buy')?'green':r.data.action&&r.data.action.includes('sell')?'red':'amber'):'red'}">
+        ${escHtml(r.success?(r.data.action||'-'):'失败')}
+      </span></td>
+      <td>${r.success?((r.data.confidence||0).toFixed(2)):'-'}</td>
+      <td style="max-width:420px">${escHtml(r.success?(r.data.reasoning||'').slice(0,80)+'...':r.error)}</td>
+    </tr>`).join('');
+  document.querySelector('#researchResult').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>📊 批量分析结果</h3>
+        <span style="font-size:11px;color:var(--text-tertiary)">成功 ${ok}/${results.length}</span></div>
+      <table class="data-table"><thead><tr><th>#</th><th>标的</th><th>操作</th><th>置信度</th><th>理由</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
+}
+
+function renderAnalyze(data) {
+  const reports = (data.agent_reports || []).map(r => `
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-header">
+        <h3>${escHtml(r.name)}</h3>
+        <span class="tag tag-${r.stance==='bullish'?'green':r.stance==='bearish'?'red':'amber'}">${escHtml(r.stance)}</span>
+      </div>
+      <div class="card-body">${escHtml(r.summary||'-')}</div>
+    </div>`).join('');
+
+  const debates = (data.debate || []).map(d => `
+    <div class="debate-row">
+      <div class="debate-bull"><div class="debate-label">🐂 看多 ${d.round?'(R'+d.round+')':''}</div><div class="debate-content">${escHtml(d.bull||'-')}</div></div>
+      <div class="debate-bear"><div class="debate-label">🐻 看空 ${d.round?'(R'+d.round+')':''}</div><div class="debate-content">${escHtml(d.bear||'-')}</div></div>
+    </div>`).join('');
+
+  const fees = data.fees || {};
+  const isBull = data.action && data.action.includes('buy');
+  const extra = data.extra || {};
+  const warnings = data.market_warnings || [];
+
+  const warningHtml = warnings.length ? `
+    <div class="card" style="margin-bottom:14px;border-left:3px solid var(--amber)">
+      <div class="card-header"><h3>⚠️ 市场规则提示</h3><span style="font-size:11px;color:var(--text-tertiary)">${data.market||'-'} · ${data.currency||''}</span></div>
+      <div class="card-body" style="color:var(--amber);font-size:13px;line-height:1.8">
+        ${warnings.map(w=>'• '+escHtml(w)).join('<br>')}
+      </div>
+    </div>` : '';
+
+  const tokenStr = extra.llm_total_tokens
+    ? ` · ${extra.llm}: ${extra.llm_total_tokens} tokens (in ${extra.llm_prompt_tokens||0} / out ${extra.llm_completion_tokens||0})${extra.llm_tokens_estimated?' [估算]':''} · ${extra.llm_calls||0} 次调用`
+    : '';
+
+  const adpJson = data.adp ? JSON.stringify(data.adp, null, 2) : '';
+
+  // 把 adp 暂存到 window 供导出
+  window.__lastAdp = data.adp;
+  window.__lastSymbol = data.symbol || '';
+
+  document.querySelector('#researchResult').innerHTML = `
+    ${warningHtml}
+    <div class="stats-grid" style="margin-bottom:16px">
+      <div class="stat-card">
+        <div class="stat-title">最终操作</div>
+        <div class="stat-value" style="color:${isBull?'var(--green)':'var(--red)'}">${escHtml(data.action||'-')}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">置信度</div>
+        <div class="stat-value">${(data.confidence||0).toFixed(2)}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">入场价</div>
+        <div class="stat-value">${data.entry_price||'-'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">止损 / 止盈</div>
+        <div class="stat-value" style="font-size:18px">${data.stop_loss||'-'} / ${data.take_profit||'-'}</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><h3>👥 四分析师报告</h3></div>
+      ${reports||'<div class="card-body" style="color:var(--text-tertiary)">暂无报告</div>'}
+    </div>
+    ${debates?`
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><h3>⚔️ 多空辩论</h3></div>
+      <div class="card-body">${debates}</div>
+    </div>`:''}
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><h3>📋 投资决策</h3>
+        ${adpJson?'<button class="btn-secondary" style="font-size:11px;padding:4px 10px" onclick="exportAdp()">📥 导出 ADP JSON</button>':''}
+      </div>
+      <div class="card-body">
+        <p style="margin-bottom:8px"><strong>建议操作：</strong>${escHtml(data.action||'-')}</p>
+        <p style="color:var(--text-secondary);line-height:1.7">${escHtml(data.reasoning||'-')}</p>
+        ${fees.total?`<p style="margin-top:10px;font-size:12px;color:var(--text-tertiary)">
+          手续费: ${data.currency||'¥'}${fees.total} (佣金 ${fees.commission||0} · 印花税 ${fees.stamp_tax||0} · 过户费 ${fees.transfer_fee||0} · SEC ${fees.sec_fee||0} · 其他 ${fees.other||0}) · 保本涨幅: ${fees.breakeven_pct}%${tokenStr}</p>`:''}
+      </div>
+    </div>
+    ${adpJson?`<div class="card"><div class="card-header"><h3>🔧 ADP 协议输出 (v1.0)</h3></div>
+      <div class="card-body"><pre style="background:var(--code-bg);border:1px solid var(--code-border);color:var(--code-text);padding:12px;border-radius:6px;font-size:11px;max-height:280px;overflow:auto">${escHtml(adpJson)}</pre></div></div>`:''}
+  `;
+}
+
+function exportAdp() {
+  if (!window.__lastAdp) return;
+  const blob = new Blob([JSON.stringify(window.__lastAdp, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `adp_${window.__lastSymbol||'decision'}_${Date.now()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// Dashboard
+// ============================================================
+async function runDashboard() {
+  const raw = document.getElementById('dashSymbols').value.trim();
+  if (!raw) { addMsg('请输入标的', 'system'); return; }
+  const symbols = raw.split(/[\s,，]+/).filter(Boolean).slice(0, 10);
+  showProgress('dashboardResult', 20, '正在生成投研面板...');
+  try {
+    const data = await api('/api/dashboard', { symbols });
+    hideProgress('dashboardResult');
+    const html = data.html || '';
+    if (!html) { addMsg('❌ 生成失败: 空内容', 'error'); return; }
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      addMsg('✅ Dashboard 已在新窗口打开', 'assistant');
+    } else {
+      document.querySelector('#dashboardResult').innerHTML = '<div class="card"><div class="card-header"><h3>📊 投研面板</h3></div>'
+        + '<div class="card-body"><iframe style="width:100%;height:600px;border:1px solid var(--border-default);border-radius:8px"></iframe></div></div>';
+      const iframe = document.querySelector('#dashboardResult iframe');
+      if (iframe) iframe.srcdoc = html;
+      addMsg('✅ Dashboard 已生成（弹出窗口被拦截）', 'assistant');
+    }
+  } catch (err) {
+    hideProgress('dashboardResult');
+    addMsg('❌ Dashboard 生成失败: '+err.message, 'error');
+  }
+}
+
+async function downloadDashboard() {
+  const raw = document.getElementById('dashSymbols').value.trim();
+  if (!raw) { addMsg('请输入标的', 'system'); return; }
+  const symbols = raw.split(/[\s,，]+/).filter(Boolean).slice(0, 10);
+  showProgress('dashboardResult', 20, '正在生成...');
+  try {
+    const data = await api('/api/dashboard', { symbols });
+    hideProgress('dashboardResult');
+    const html = data.html || '';
+    if (!html) return;
+    const blob = new Blob([html], { type:'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'alphalith_dashboard_'+Date.now()+'.html';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    addMsg('✅ Dashboard HTML 已下载', 'assistant');
+  } catch (err) {
+    hideProgress('dashboardResult');
+    addMsg('❌ 下载失败: '+err.message, 'error');
+  }
+}
+
+const STRATEGY_LABELS = {
+  ma_cross:'均线交叉', macd:'MACD', rsi:'RSI', bollinger:'布林带',
+  momentum:'动量突破', reversal:'均值回归', llm:'LLM智能'
+};
+
+function renderBtStrategyBox() {
+  const box = document.getElementById('btStrategyBox');
+  if (!box) return;
+  box.innerHTML = Object.entries(STRATEGY_LABELS).map(([k,v])=>`
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;border-radius:6px;background:var(--bg-hover);font-size:13px;min-width:110px">
+      <input type="checkbox" class="bt-strategy-cb" value="${k}" style="cursor:pointer"> ${escHtml(v)}
+    </label>`).join('');
+}
+
+function getSelectedStrategies() {
+  return Array.from(document.querySelectorAll('.bt-strategy-cb:checked')).map(cb=>cb.value);
+}
+
+function setStrategyCheck(strategy) {
+  document.querySelectorAll('.bt-strategy-cb').forEach(cb=>cb.checked=false);
+  const cb = document.querySelector(`.bt-strategy-cb[value="${strategy}"]`);
+  if (cb) cb.checked = true;
+}
+
+// ============================================================
+// BACKTEST
+// ============================================================
+async function runBacktest() {
+  const sym = document.getElementById('btSymbol').value.trim();
+  if (!sym) { addMsg('请输入标的', 'system'); return; }
+  const strategy = document.getElementById('btStrategy').value;
+  const days = parseInt(document.getElementById('btDays').value)||180;
+  const horizon = parseInt(document.getElementById('btHorizon').value)||10;
+  await doBacktest(sym, strategy, days, horizon);
+}
+
+async function handleBacktestReq(text) {
+  const parts = text.replace(/\/backtest\s*/i,'').trim().split(/\s+/);
+  if (parts.length<1) { addMsg('格式: /backtest 标的 策略 天数', 'system'); return; }
+  const smap = {'均线':'ma_cross','动量':'momentum','均值回归':'mean_reversion','布林带':'bollinger','rsi':'rsi','vwap':'vwap_reversion','llm':'llm'};
+  const sym = parts[0];
+  const strategy = parts[1] ? (smap[parts[1]]||parts[1]) : 'momentum';
+  const days = parseInt(parts[2])||180;
+  const horizon = parseInt(parts[3])||10;
+  document.getElementById('btSymbol').value=sym;
+  document.getElementById('btStrategy').value=strategy;
+  document.getElementById('btDays').value=days;
+  document.getElementById('btHorizon').value=horizon;
+  switchPage('backtest');
+  await doBacktest(sym, strategy, days, horizon);
+}
+
+async function doBacktest(symbol, strategy, days, horizon) {
+  const tid = 'typing-bt-'+Date.now();
+  addTyping(tid);
+  try {
+    const data = await api('/api/backtest', { symbol, strategy, period_days:days, horizon });
+    rmTyping(tid);
+    renderBacktest(data);
+    addMsg('✅ '+symbol+' '+strategy+' 回测完成 ('+days+'天)', 'assistant');
+  } catch (err) {
+    rmTyping(tid);
+    addMsg('❌ 回测失败: '+err.message, 'error');
+    renderError('#backtestResult', err.message);
+  }
+}
+
+function renderBacktest(results) {
+  const hasMultiple = results.length > 1;
+  const mDef = (label, val, isGood) => {
+    const s = val!=null ? (typeof val==='number' ? val.toFixed(2) : val) : '-';
+    return `<div class="metric-card"><div class="metric-label">${label}</div><div class="metric-value ${isGood===true?'positive':isGood===false?'negative':''}" style="font-size:${typeof val==='number'&&Math.abs(val)>=100?'16px':''}">${s}</div></div>`;
+  };
+  let html = '';
+  if (!hasMultiple) {
+    const r = results[0];
+    if (!r || !r.success) {
+      document.querySelector('#backtestResult').innerHTML = `<div class="empty-state"><p>回测失败: ${r&&r.error||'未知错误'}</p></div>`;
+      return;
+    }
+    const d = r.data, m = d.metrics || {}, trades = d.trades || [], equity = d.equity_curve || [];
+    const metricsHtml = [
+      ['总收益率%', m.total_return_pct, m.total_return_pct>=0],
+      ['年化收益%', m.annual_return_pct, m.annual_return_pct>=0],
+      ['最大回撤%', m.max_drawdown_pct, null],
+      ['Sharpe', m.sharpe_ratio, (m.sharpe_ratio||0)>=1],
+      ['Sortino', m.sortino_ratio, (m.sortino_ratio||0)>=1],
+      ['Calmar', m.calmar_ratio, (m.calmar_ratio||0)>=1],
+      ['信息比率', m.info_ratio, (m.info_ratio||0)>=0.5],
+      ['总盈亏', m.total_pnl, m.total_pnl>=0],
+      ['买入持有%', m.buy_hold_return, m.buy_hold_return>=0],
+      ['Alpha', m.alpha, (m.alpha||0)>=0],
+      ['Beta', m.beta, null],
+      ['最大连盈', m.max_win_streak, null],
+      ['最大连亏', m.max_loss_streak, null],
+      ['盈亏比', m.win_loss_ratio, (m.win_loss_ratio||0)>=1],
+    ].map(([l,v,g])=>mDef(l,v,g)).join('');
+    const tradeRows = trades.slice(0,12).map((t,i)=>`
+      <tr>
+        <td>${i+1}</td><td>${String(t.entry_date||'').slice(0,10)}</td><td>${String(t.exit_date||'').slice(0,10)}</td>
+        <td class="${(t.pnl_pct||0)>=0?'price-up':'price-down'}">${(t.pnl_pct||0).toFixed(2)}%</td>
+        <td><span class="tag tag-${t.direction==='long'?'green':'red'}">${t.direction==='long'?'做多':'做空'}</span></td>
+      </tr>`).join('');
+    html = `
+      <div class="metrics-grid" style="grid-template-columns:repeat(5,1fr)">${metricsHtml}</div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><h3>📊 收益曲线 — ${escHtml(STRATEGY_LABELS[r.strategy]||r.strategy)}</h3></div>
+        <div class="card-body"><div class="chart-box" id="btChartDom"></div></div>
+      </div>
+      ${trades.length?`
+      <div class="card">
+        <div class="card-header"><h3>📝 交易记录 (前${Math.min(trades.length,12)}笔)</h3><span style="font-size:11px;color:var(--text-tertiary)">共${trades.length}笔</span></div>
+        <table class="data-table"><thead><tr><th>#</th><th>入场</th><th>出场</th><th>盈亏</th><th>方向</th></tr></thead><tbody>${tradeRows}</tbody></table>
+        </div>`:''}`;
+    if (equity.length) setTimeout(()=>renderEChart('btChartDom', equity, STRATEGY_LABELS[r.strategy]||r.strategy), 100);
+  } else {
+    const rows = results.map((r,i)=>{
+      const m = r.success ? (r.data.metrics||{}) : {};
+      return `<tr>
+        <td>${i+1}</td><td><strong>${escHtml(STRATEGY_LABELS[r.strategy]||r.strategy)}</strong></td>
+        <td class="${r.success?'':'price-down'}">${r.success?(m.total_return_pct||0).toFixed(2)+'%':'失败'}</td>
+        <td>${r.success?((m.sharpe_ratio||0).toFixed(2)):'-'}</td>
+        <td>${r.success?((m.max_drawdown_pct||0).toFixed(2)+'%'):'-'}</td>
+        <td>${r.success?((m.win_rate_pct||0).toFixed(2)+'%'):'-'}</td>
+        <td>${r.success?((m.calmar_ratio||0).toFixed(2)):'-'}</td>
+        <td>${r.success?((m.info_ratio||0).toFixed(2)):'-'}</td>
+        <td>${r.success?((m.total_pnl||0).toFixed(2)):'-'}</td>
+      </tr>`;
+    }).join('');
+    html = `<div class="card"><div class="card-header"><h3>📊 多策略对比 (${results.length} 个)</h3></div>
+      <table class="data-table"><thead><tr><th>#</th><th>策略</th><th>总收益</th><th>Sharpe</th><th>最大回撤</th><th>胜率</th><th>Calmar</th><th>信息比率</th><th>总盈亏</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  document.querySelector('#backtestResult').innerHTML = html;
+}
+
+// ============================================================
+// SIGNALS
+// ============================================================
+async function loadSignals() {
+  const sym = document.getElementById('sigSymbol').value.trim();
+  const tid = 'typing-sig-'+Date.now();
+  addTyping(tid);
+  try {
+    const data = await api('/api/signals', { symbols: sym?[sym]:[] });
+    rmTyping(tid);
+    renderSignals(data.signals||[]);
+  } catch (err) {
+    rmTyping(tid);
+    addMsg('❌ 信号获取失败: '+err.message, 'error');
+  }
+}
+
+async function handleSignalsReq(text) {
+  const m = text.match(/(?:\/signals\s+)?(\S+)/);
+  switchPage('signals');
+  if (m) document.getElementById('sigSymbol').value = m[1];
+  await loadSignals();
+}
+
+function renderSignals(signals) {
+  if (!signals.length) {
+    document.querySelector('#signalsResult').innerHTML = '<div class="empty-state"><p>暂无信号数据</p><p style="font-size:12px;margin-top:4px">执行分析后自动填充</p></div>';
+    return;
+  }
+  const cards = signals.map((s,i) => `
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-header">
+        <h3>#${i+1} ${s.symbol||'Unknown'}</h3>
+        <span class="tag tag-${s.signal==='buy'?'green':s.signal==='sell'?'red':'amber'}">${s.signal||s.signal||'-'}</span>
+      </div>
+      <div class="card-body" style="display:flex;gap:20px">
+        <div style="flex:1"><span style="color:rgba(255,255,255,0.4);font-size:11px">置信度</span><br><strong>${(s.confidence||0).toFixed(2)}</strong></div>
+        <div style="flex:2"><span style="color:rgba(255,255,255,0.4);font-size:11px">摘要</span><br><span style="color:rgba(255,255,255,0.55);font-size:12px;line-height:1.5">${s.summary||'-'}</span></div>
+        <div style="flex:1"><span style="color:rgba(255,255,255,0.4);font-size:11px">时间</span><br><span style="font-size:11px;color:rgba(255,255,255,0.35)">${(s.timestamp||'').slice(0,16)}</span></div>
+      </div>
+    </div>`).join('');
+  document.querySelector('#signalsResult').innerHTML = cards;
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+async function loadHistory() {
+  const sym = document.getElementById('histSymbol').value.trim();
+  const limit = parseInt(document.getElementById('histLimit').value)||20;
+  try {
+    const data = await apiGet('/api/history?symbol='+encodeURIComponent(sym)+'&limit='+limit);
+    renderHistory(data.history||data.records||[]);
+  } catch (err) {
+    renderError('#histResult', err.message);
+  }
+}
+
+function renderHistory(records) {
+  const arr = Array.isArray(records)?records:[];
+  const count = arr.length;
+  const badge = document.getElementById('histBadge');
+  if (badge) { badge.textContent=count; badge.style.display=count?'':'none'; }
+
+  if (!count) {
+    document.querySelector('#histResult').innerHTML = '<div class="empty-state"><p>暂无历史记录</p></div>';
+    return;
+  }
+  const rows = arr.map((r,i) => `
+    <tr>
+      <td>${i+1}</td><td>${r.symbol||'-'}</td><td>${String(r.date||r.timestamp||'').slice(0,16)}</td>
+      <td><span class="tag tag-${r.action==='buy'?'green':r.action==='sell'?'red':'amber'}">${r.action||'-'}</span></td>
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.reasoning||r.notes||'-'}</td>
+    </tr>`).join('');
+  document.querySelector('#histResult').innerHTML = `
+    <div class="card">
+      <table class="data-table"><thead><tr><th>#</th><th>标的</th><th>时间</th><th>操作</th><th>理由</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
+}
+
+async function loadReview() {
+  const sym = document.getElementById('histSymbol').value.trim();
+  try {
+    const data = await apiGet('/api/review?symbol='+encodeURIComponent(sym));
+    const rv = data.stats||data||{};
+    document.querySelector('#histResult').innerHTML += `
+      <div class="card" style="margin-top:14px">
+        <div class="card-header"><h3>📊 审查统计</h3></div>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat-card"><div class="stat-title">买入次数</div><div class="stat-value" style="color:#10B981">${rv.buy_count||0}</div></div>
+          <div class="stat-card"><div class="stat-title">卖出次数</div><div class="stat-value" style="color:#EF4444">${rv.sell_count||0}</div></div>
+          <div class="stat-card"><div class="stat-title">持仓次数</div><div class="stat-value">${rv.hold_count||0}</div></div>
+        </div>
+      </div>`;
+  } catch (err) {
+    addMsg('审查加载失败: '+err.message, 'error');
+  }
+}
+
+// ============================================================
+// COMPARE
+// ============================================================
+async function runCompare() {
+  const raw = document.getElementById('cmpSymbols').value.trim();
+  if (!raw) { addMsg('请输入对比标的', 'system'); return; }
+  const symbols = raw.split(/[\s,，]+/).filter(Boolean);
+  if (symbols.length<2) { addMsg('至少输入2个标的', 'system'); return; }
+  const strategy = document.getElementById('cmpStrategy').value;
+  const days = parseInt(document.getElementById('cmpDays').value)||180;
+  await doCompare(symbols, strategy, days);
+}
+
+async function handleCompareReq(text) {
+  const parts = text.replace(/\/compare\s*/i,'').trim().split(/[\s,，]+/).filter(Boolean);
+  if (parts.length<2) { addMsg('格式: /compare 标的A 标的B', 'system'); return; }
+  document.getElementById('cmpSymbols').value = parts.join(' ');
+  switchPage('compare');
+  await doCompare(parts, document.getElementById('cmpStrategy').value, parseInt(document.getElementById('cmpDays').value)||180);
+}
+
+async function doCompare(symbols, strategy, days) {
+  const tid = 'typing-cmp-'+Date.now();
+  addTyping(tid);
+  try {
+    const data = await api('/api/compare', { symbols: symbols.slice(0,5), strategy, days, horizon:10 });
+    rmTyping(tid);
+    renderCompare(data);
+    addMsg('✅ 对比分析完成', 'assistant');
+  } catch (err) {
+    rmTyping(tid);
+    addMsg('❌ 对比失败: '+err.message, 'error');
+  }
+}
+
+function renderCompare(data) {
+  const results = data.results || [];
+  const rows = results.map(r => {
+    if (r.error) return `<tr><td><strong>${r.symbol}</strong></td><td colspan="4" style="color:#EF4444">${r.error}</td></tr>`;
+    const m = r.metrics || {};
+    return `<tr>
+      <td><strong>${r.symbol}</strong></td>
+      <td class="${(m.total_return_pct||0)>=0?'price-up':'price-down'}">${(m.total_return_pct||0).toFixed(2)}%</td>
+      <td>${(m.sharpe_ratio||0).toFixed(2)}</td>
+      <td>${(m.max_drawdown_pct||0).toFixed(2)}%</td>
+      <td>${(m.win_rate_pct||0).toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+
+  document.querySelector('#cmpResult').innerHTML = `
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><h3>⚖️ 回测对比</h3></div>
+      <table class="data-table"><thead><tr><th>标的</th><th>总收益</th><th>Sharpe</th><th>最大回撤</th><th>胜率</th></tr></thead><tbody>${rows}</tbody></table>
+    </div>
+    ${data.llm_review?`<div class="card"><div class="card-body" style="color:rgba(255,255,255,0.55);line-height:1.7;font-size:13px">${data.llm_review}</div></div>`:''}`;
+
+  // Render equity charts for comparison
+  const chartGrid = document.getElementById('cmpCharts');
+  const valid = results.filter(r => !r.error && r.equity_curve && r.equity_curve.length);
+  chartGrid.innerHTML = valid.map((r,i) => `
+    <div class="card">
+      <div class="card-header"><h3>${r.symbol} 净值曲线</h3></div>
+      <div class="card-body"><div class="chart-box" id="cmpChart${i}"></div></div>
+    </div>`).join('');
+  valid.forEach((r,i) => renderEChart('cmpChart'+i, r.equity_curve, r.symbol+' 净值'));
+}
+
+// ============================================================
+// RAW CHAT
+// ============================================================
+async function handleChat(text) {
+  const tid = 'typing-chat-'+Date.now();
+  addTyping(tid);
+  try {
+    const data = await api('/api/chat', { message:text });
+    rmTyping(tid);
+    addMsg(data.reply||data.response||JSON.stringify(data), 'assistant');
+  } catch (err) {
+    rmTyping(tid);
+    addMsg('❌ 对话错误: '+err.message, 'error');
+  }
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+async function saveSettings() {
+  try {
+    const config = {};
+    const base = document.getElementById('setApiBase').value.trim();
+    const key = document.getElementById('setApiKey').value.trim();
+    if (base) { config.model = config.model||{}; config.model.base_url = base; }
+    if (key && key !== '••••••••') { config.model = config.model||{}; config.model.api_key = key; }
+    await api('/api/config', config);
+    addMsg('✅ 配置已保存', 'assistant');
+  } catch (err) {
+    addMsg('❌ 保存失败: '+err.message, 'error');
+  }
+}
+
+// ============================================================
+// CHARTS (ECharts)
+// ============================================================
+function renderEChart(domId, equityData, name) {
+  const dom = document.getElementById(domId);
+  if (!dom || !equityData.length) return;
+
+  // Dispose existing
+  if (S.chartInstances[domId]) S.chartInstances[domId].dispose();
+
+  // Read theme colors from CSS variables
+  const cs = getComputedStyle(document.documentElement);
+  const ecLine   = cs.getPropertyValue('--ec-line').trim() || '#6366F1';
+  const ecArea0  = cs.getPropertyValue('--ec-area0').trim() || 'rgba(99,102,241,0.25)';
+  const ecArea1  = cs.getPropertyValue('--ec-area1').trim() || 'rgba(99,102,241,0)';
+  const ecGrid   = cs.getPropertyValue('--ec-grid').trim() || '#2a2a2a';
+  const ecAxis   = cs.getPropertyValue('--ec-axis-text').trim() || 'rgba(255,255,255,0.4)';
+
+  const chart = echarts.init(dom);
+  S.chartInstances[domId] = chart;
+
+  const values = equityData.map(p => p.equity??p.value??p.close??p);
+  const dates = equityData.map((_,i) => i+1);
+
+  chart.setOption({
+    backgroundColor:'transparent',
+    grid:{left:55,right:20,top:15,bottom:25},
+    xAxis:{type:'category',data:dates,axisLine:{lineStyle:{color:ecGrid}},axisLabel:{show:false}},
+    yAxis:{type:'value',splitLine:{lineStyle:{color:ecGrid}},axisLabel:{color:ecAxis,fontSize:10}},
+    series:[{
+      name, type:'line', data:values, smooth:true, symbol:'none',
+      lineStyle:{color:ecLine,width:2},
+      areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[
+        {offset:0,color:ecArea0},
+        {offset:1,color:ecArea1}
+      ])}
+    }]
+  });
+
+  const ro = new ResizeObserver(() => chart.resize());
+  ro.observe(dom);
+}
+
+function disposeCharts() {
+  Object.values(S.chartInstances).forEach(c => { try{c.dispose()}catch(e){} });
+  S.chartInstances = {};
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function renderError(sel, msg) {
+  document.querySelector(sel).innerHTML = `<div class="card"><div class="card-body" style="color:#EF4444">⚠️ ${msg}</div></div>`;
+}
+
+async function updateBadges() {
+  try {
+    const data = await apiGet('/api/history?limit=1');
+    const total = data.total||(data.history&&data.history.length)||0;
+    const badge = document.getElementById('histBadge');
+    if (badge) { badge.textContent=total; badge.style.display=total?'':'none'; }
+  } catch(e) {}
+}
+
+// ============================================================
+// THEME (dark / light toggle)
+// ============================================================
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('alphalith-theme', theme);
+  // Update theme button label
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+  // Re-render all active ECharts with new theme colors
+  try {
+    const charts = S.chartInstances || {};
+    Object.entries(charts).forEach(([id, chart]) => {
+      try {
+        if (!chart || typeof chart.getOption !== 'function') return;
+        const option = chart.getOption();
+        const cs = getComputedStyle(document.documentElement);
+        const ecLine = cs.getPropertyValue('--ec-line').trim() || '#6366F1';
+        const ecArea0 = cs.getPropertyValue('--ec-area0').trim() || 'rgba(99,102,241,0.25)';
+        const ecArea1 = cs.getPropertyValue('--ec-area1').trim() || 'rgba(99,102,241,0)';
+        const ecGrid = cs.getPropertyValue('--ec-grid').trim() || '#2a2a2a';
+        const ecAxis = cs.getPropertyValue('--ec-axis-text').trim() || 'rgba(255,255,255,0.4)';
+        if (option.series && option.series[0]) {
+          option.series[0].lineStyle = Object.assign(option.series[0].lineStyle || {}, {color: ecLine});
+          option.series[0].areaStyle = {
+            color: new echarts.graphic.LinearGradient(0,0,0,1,[
+              {offset:0, color:ecArea0},
+              {offset:1, color:ecArea1}
+            ])
+          };
+        }
+        if (option.xAxis) {
+          const xa = Array.isArray(option.xAxis) ? option.xAxis[0] : option.xAxis;
+          xa.axisLine = Object.assign(xa.axisLine || {}, {lineStyle:{color:ecGrid}});
+        }
+        if (option.yAxis) {
+          const ya = Array.isArray(option.yAxis) ? option.yAxis[0] : option.yAxis;
+          ya.splitLine = Object.assign(ya.splitLine || {}, {lineStyle:{color:ecGrid}});
+          ya.axisLabel = Object.assign(ya.axisLabel || {}, {color:ecAxis});
+        }
+        chart.setOption(option, true);
+      } catch(e) { console.warn('Chart refresh failed for', id, e); }
+    });
+  } catch(e) { console.warn('applyTheme chart loop failed:', e); }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+const Auth = {
+  user: null,        // {username, display_name}
+  authMode: 'login', // 'login' | 'register'
+  hasDefaultAdmin: false,
+};
+
+function showAuthModal(mode) {
+  Auth.authMode = mode || 'login';
+  const overlay = document.getElementById('authOverlay');
+  const tabLogin = document.getElementById('tabLogin');
+  const tabReg = document.getElementById('tabRegister');
+  const fieldDisplay = document.getElementById('fieldDisplay');
+  const submitBtn = document.getElementById('authSubmit');
+  const title = document.getElementById('authTitle');
+  const sub = document.getElementById('authSub');
+  const pwdInput = document.getElementById('authPassword');
+  const hint = document.getElementById('authHint');
+
+  if (Auth.authMode === 'register') {
+    tabLogin.classList.remove('active');
+    tabReg.classList.add('active');
+    fieldDisplay.style.display = '';
+    submitBtn.textContent = '注 册';
+    title.textContent = '创建 Alphalith 账户';
+    sub.textContent = '本地账户，无网络注册';
+    pwdInput.setAttribute('autocomplete', 'new-password');
+    pwdInput.placeholder = '至少 6 位';
+    if (hint) hint.style.display = 'none';
+  } else {
+    tabLogin.classList.add('active');
+    tabReg.classList.remove('active');
+    fieldDisplay.style.display = 'none';
+    submitBtn.textContent = '登 录';
+    title.textContent = '登录到 Alphalith';
+    sub.textContent = 'AI 多智能体投研引擎';
+    pwdInput.setAttribute('autocomplete', 'current-password');
+    pwdInput.placeholder = '输入密码';
+    if (hint) hint.style.display = Auth.hasDefaultAdmin ? '' : 'none';
+  }
+  hideAuthError();
+  overlay.classList.add('show');
+  setTimeout(() => document.getElementById('authUsername').focus(), 100);
+}
+
+function hideAuthModal() {
+  document.getElementById('authOverlay').classList.remove('show');
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideAuthError() {
+  document.getElementById('authError').classList.remove('show');
+}
+
+async function submitAuth(ev) {
+  if (ev) ev.preventDefault();
+  hideAuthError();
+  const username = document.getElementById('authUsername').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const displayName = document.getElementById('authDisplay').value.trim();
+  const submitBtn = document.getElementById('authSubmit');
+
+  if (!username || !password) {
+    showAuthError('用户名和密码不能为空');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  const originalText = submitBtn.textContent;
+  submitBtn.textContent = Auth.authMode === 'register' ? '注册中...' : '登录中...';
+
+  try {
+    const endpoint = Auth.authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+    const body = { username, password };
+    if (Auth.authMode === 'register' && displayName) body.display_name = displayName;
+
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      showAuthError(data.error || '请求失败');
+      return;
+    }
+
+    Auth.user = { username: data.username, display_name: data.display_name };
+    hideAuthModal();
+    renderUserUI();
+
+    // Clear form
+    document.getElementById('authPassword').value = '';
+    document.getElementById('authDisplay').value = '';
+
+    // Welcome message in chat
+    if (typeof addMsg === 'function') {
+      addMsg('system', `欢迎，${data.display_name}！`);
+    }
+  } catch (e) {
+    showAuthError('网络错误：' + e.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+  }
+}
+
+async function checkAuth() {
+  try {
+    const resp = await fetch('/api/auth/me', { credentials: 'include' });
+    const data = await resp.json();
+    Auth.hasDefaultAdmin = !!data.has_default_admin;
+    if (data.logged_in) {
+      Auth.user = { username: data.username, display_name: data.display_name, is_default: data.is_default };
+      renderUserUI();
+      // 如果当前登录的就是默认管理员，提示改密码
+      if (data.is_default && typeof addMsg === 'function') {
+        setTimeout(() => addMsg('system', '⚠️ 你正在使用默认管理员账号（admin/alphalith），建议尽快在「系统配置」中修改密码或注册新账号。'), 500);
+      }
+      return true;
+    } else {
+      Auth.user = null;
+      // 没用户存在 → 默认显示注册；有用户 → 显示登录
+      showAuthModal(data.user_count > 0 ? 'login' : 'register');
+      return false;
+    }
+  } catch (e) {
+    showAuthModal('login');
+    return false;
+  }
+}
+
+async function logout() {
+  try {
+    await fetch('/api/auth/logout', { credentials: 'include' });
+  } catch (e) {}
+  Auth.user = null;
+  closeAccountMenu();
+  renderUserUI();
+  showAuthModal('login');
+}
+
+function renderUserUI() {
+  const u = Auth.user;
+  const avatar = document.getElementById('userAvatar');
+  const headerAvatar = document.getElementById('headerAvatar');
+  const name = document.getElementById('userName');
+  const status = document.getElementById('userStatus');
+  const amName = document.getElementById('amName');
+  const amMeta = document.getElementById('amMeta');
+
+  if (u) {
+    const display = u.display_name || u.username;
+    const initial = (display || '?').charAt(0).toUpperCase();
+    if (avatar) avatar.textContent = initial;
+    if (headerAvatar) headerAvatar.textContent = initial;
+    if (name) name.textContent = display;
+    if (status) {
+      status.textContent = '● 已登录';
+      status.style.color = 'var(--green)';
+    }
+    if (amName) amName.textContent = display;
+    if (amMeta) amMeta.textContent = '@' + u.username;
+  } else {
+    if (avatar) avatar.textContent = '?';
+    if (headerAvatar) headerAvatar.textContent = '?';
+    if (name) name.textContent = '未登录';
+    if (status) {
+      status.textContent = '● 请先登录';
+      status.style.color = 'var(--text-tertiary)';
+    }
+  }
+}
+
+function showAccountMenu() {
+  if (!Auth.user) {
+    showAuthModal('login');
+    return;
+  }
+  document.getElementById('accountMenu').classList.add('show');
+}
+
+function closeAccountMenu() {
+  document.getElementById('accountMenu').classList.remove('show');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+(function init() {
+  // Theme button
+  const themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+  }
+
+  // Apply saved theme
+  const savedTheme = localStorage.getItem('alphalith-theme') || 'light';
+  applyTheme(savedTheme);
+
+  // Populate strategy checkboxes
+  renderBtStrategyBox();
+
+  // Auth wiring
+  document.getElementById('tabLogin').addEventListener('click', () => showAuthModal('login'));
+  document.getElementById('tabRegister').addEventListener('click', () => showAuthModal('register'));
+  document.getElementById('authForm').addEventListener('submit', submitAuth);
+  const hintFill = document.getElementById('authHintFill');
+  if (hintFill) {
+    hintFill.addEventListener('click', () => {
+      document.getElementById('authUsername').value = 'admin';
+      document.getElementById('authPassword').value = 'alphalith';
+      document.getElementById('authPassword').focus();
+    });
+  }
+  document.getElementById('userRow').addEventListener('click', () => {
+    if (Auth.user) showAccountMenu(); else showAuthModal('login');
+  });
+  // Click outside account menu to close
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('accountMenu');
+    const headerAvatar = document.getElementById('headerAvatar');
+    const userRow = document.getElementById('userRow');
+    if (menu.classList.contains('show')
+        && !menu.contains(e.target)
+        && e.target !== headerAvatar
+        && !userRow.contains(e.target)) {
+      closeAccountMenu();
+    }
+  });
+
+  switchPage('research');
+  document.getElementById('chatInput').focus();
+
+  // Sidebar nav clicks
+  document.querySelectorAll('.menu-item[data-page]').forEach(item => {
+    item.addEventListener('click', function() { switchPage(this.dataset.page); });
+  });
+
+  // Window resize for charts
+  window.addEventListener('resize', () => {
+    const charts = S.chartInstances || {};
+    Object.values(charts).forEach(c => { try{c.resize()}catch(e){} });
+  });
+
+  // Initial badge load
+  updateBadges();
+
+  // Check auth state — show login modal if not logged in
+  checkAuth();
+})();
+</script>
+</body>
+</html>

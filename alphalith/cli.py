@@ -6,6 +6,7 @@ CLI:
   alphalith history [--symbol X] [--limit N]
   alphalith review  [--symbol X] [--json]
   alphalith dashboard [--symbols X,Y,Z] [--output path.html]
+  alphalith gui [--port PORT]
 """
 from __future__ import annotations
 
@@ -104,6 +105,10 @@ def main(argv: list[str] | None = None) -> int:
                      help="监控标的列表，逗号分隔（默认 600519,0700.HK,NVDA）")
     p_d.add_argument("--output", default="alphalith_dashboard.html",
                      help="输出 HTML 路径（默认 alphalith_dashboard.html）")
+
+    p_gui = sub.add_parser("gui", help="启动 AI 投研工作台 GUI")
+    p_gui.add_argument("--port", type=int, default=8888, help="HTTP 服务端口（默认 8888）")
+    p_gui.add_argument("--no-browser", action="store_true", help="不自动打开浏览器")
 
     args = parser.parse_args(argv)
 
@@ -257,6 +262,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"📊 Dashboard 已生成：{p}")
         print(f"   监控标的：{', '.join(syms)}")
         print(f"   用浏览器打开即可查看")
+        return 0
+
+    if args.cmd == "gui":
+        from .gui import start_gui
+        server, thread = start_gui(port=args.port, open_browser=not args.no_browser)
+        try:
+            while thread.is_alive():
+                thread.join(1)
+        except KeyboardInterrupt:
+            print("\n  收到中断信号，正在停止...")
+            server.shutdown()
         return 0
 
     return 1

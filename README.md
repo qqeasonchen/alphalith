@@ -1,5 +1,7 @@
 # 🪨 Alphalith · 慧投
 
+> **项目名来源**: *Alphalith* = **Alpha**（超额收益）+ **Lith**（古希腊语 λίθος，"立石/ bedrock"）→ "封存于立石的 Alpha 决策"，与文末铭文 *Sealed in the Bedrock* 呼应。中文名"慧投"= 慧眼投研。
+>
 > **The Bedrock of AI-Driven Alpha** · AI 慧眼，洞察先机
 >
 > 一个轻量、零外部依赖的多智能体 AI 投研引擎，原生支持 **A 股 / 港股 / 美股**。
@@ -198,6 +200,39 @@ alphalith dashboard --symbols 600519,0700.HK,NVDA --output dashboard.html
 - 回测绩效总览表（6 策略 × 3 市场）
 - 收益热力图（Canvas 渲染，绿=盈/红=亏）
 - 最近决策时间线（来自 SQLite 日志）
+
+---
+## 🖥️ GUI 投研工作台
+
+零外部依赖，单文件 HTML（CSS + JS 内联）+ Python 内置 HTTP 服务，一键启动：
+
+```bash
+alphalith gui                    # 默认 8888 端口，自动打开浏览器
+alphalith gui --port 3000        # 自定义端口
+alphalith gui --no-browser       # 仅启动服务，不打开浏览器
+```
+
+### 界面布局
+
+- **侧栏导航**：投研分析 / 策略回测 / 投研面板 / 信号中心 / 历史记录
+- **投研分析页**：支持单标的或空格/逗号分隔的多标的；深度可选 Quick/Standard/Deep；勾选"实时辩论"可 SSE 流式观看四分析师报告 + 多空辩论过程；进度条实时显示分析阶段
+- **策略回测页**：7 种策略多选（checkbox），并行回测并展示对比表；单策略显示完整 14 项指标（总收益/年化/最大回撤/Sharpe/Sortino/Calmar/信息比率/Alpha/Beta/最大连盈连亏/盈亏比等）+ 收益曲线 + 交易记录
+- **投研面板页**：一键生成 Dashboard HTML，支持新窗口预览或下载
+- **信号中心 / 历史记录**：保留原有功能
+
+### v0.3.0 新增能力（GUI 已完整覆盖 CLI）
+
+| 功能 | CLI | GUI |
+|---|---|---|
+| SSE 实时辩论流式展示 | ✅ | ✅ |
+| 多标的批量分析 | `analyze-batch` | ✅ 输入框空格分隔 |
+| 多策略并行回测 | `backtest --strategy A --strategy B` | ✅ 多选 checkbox |
+| 9+ 风险指标展示 | ✅ `--html` | ✅ 14 项指标卡片 |
+| 市场规则提示 | ✅ | ✅ 黄色提示卡 |
+| ADP JSON 导出 | ✅ `to_adp_json()` | ✅ 一键下载按钮 |
+| Token 消耗透明化 | ✅ 报告底部 | ✅ 投资决策卡片内 |
+| 完整手续费明细 | ✅ | ✅ 佣金/印花税/过户费/SEC/其他 |
+| Dashboard 生成 | ✅ `dashboard` 子命令 | ✅ 投研面板页 |
 
 ---
 
