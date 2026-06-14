@@ -888,34 +888,65 @@ a { color:inherit; text-decoration:none; }
         <div class="setting-row">
           <div><div class="setting-label">模型选择</div><div class="setting-desc">切换后自动填入对应的 API 地址和参数</div></div>
           <div class="setting-control">
-            <select class="setting-input" id="setModelPreset" onchange="onModelPresetChange(this)" style="cursor:pointer">
-              <optgroup label="DeepSeek (推荐)">
-                <option value="deepseek-v3" data-model="deepseek-chat" data-base="https://api.deepseek.com/v1" data-key-env="DEEPSEEK_API_KEY">DeepSeek V3 · ¥0.003/次</option>
-                <option value="deepseek-r1" data-model="deepseek-reasoner" data-base="https://api.deepseek.com/v1" data-key-env="DEEPSEEK_API_KEY">DeepSeek R1 · 推理增强</option>
+                        <select class="setting-input" id="setModelPreset" onchange="onModelPresetChange(this)" style="cursor:pointer;max-width:420px">
+              <optgroup label="🔥 DeepSeek 官方">
+                <option value="deepseek-v3" data-model="deepseek-chat" data-base="https://api.deepseek.com/v1" data-key-env="DEEPSEEK_API_KEY">DeepSeek V3.1 · 全能旗舰 ¥1/M tokens</option>
+                <option value="deepseek-r1" data-model="deepseek-reasoner" data-base="https://api.deepseek.com/v1" data-key-env="DEEPSEEK_API_KEY">DeepSeek R1 · 深度推理</option>
               </optgroup>
-              <optgroup label="通义千问">
-                <option value="qwen-max" data-model="qwen-max" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen-Max · 旗舰</option>
-                <option value="qwen-plus" data-model="qwen-plus" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen-Plus · 均衡</option>
+              <optgroup label="☁️ 阿里云百炼 · Qwen3">
+                <option value="qwen3-max" data-model="qwen3-max" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen3-Max · 旗舰 · 支持 Coding Plan</option>
+                <option value="qwen3-plus" data-model="qwen3-plus" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen3-Plus · 均衡性价比</option>
+                <option value="qwen3-coder" data-model="qwen3-coder" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen3-Coder · 编程专精 · 需 Coding Plan</option>
               </optgroup>
-              <optgroup label="OpenAI">
-                <option value="gpt-4o" data-model="gpt-4o" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">GPT-4o · 多模态旗舰</option>
-                <option value="gpt-4o-mini" data-model="gpt-4o-mini" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">GPT-4o-mini · 轻量高速</option>
+              <optgroup label="🌐 OpenAI">
+                <option value="gpt-5.4" data-model="gpt-5.4" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">GPT-5.4 · 1M 上下文 · 旗舰</option>
+                <option value="o4-mini" data-model="o4-mini" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">o4-mini · 推理轻量</option>
+                <option value="gpt-4.1-mini" data-model="gpt-4.1-mini" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">GPT-4.1-mini · 高性价比</option>
               </optgroup>
-              <optgroup label="Claude">
-                <option value="claude-3.5-sonnet" data-model="claude-3-5-sonnet-20241022" data-base="https://api.anthropic.com/v1" data-key-env="ANTHROPIC_API_KEY">Claude 3.5 Sonnet · 代码王者</option>
-                <option value="claude-3-opus" data-model="claude-3-opus-20240229" data-base="https://api.anthropic.com/v1" data-key-env="ANTHROPIC_API_KEY">Claude 3 Opus · 深度推理</option>
+              <optgroup label="🧠 Anthropic Claude">
+                <option value="claude-opus-4" data-model="claude-opus-4-20250514" data-base="https://api.anthropic.com/v1" data-key-env="ANTHROPIC_API_KEY">Claude Opus 4 · 最强编码 · 需代理</option>
+                <option value="claude-sonnet-4" data-model="claude-sonnet-4-20250514" data-base="https://api.anthropic.com/v1" data-key-env="ANTHROPIC_API_KEY">Claude Sonnet 4 · 编程高效 · 需代理</option>
               </optgroup>
-              <optgroup label="Google">
-                <option value="gemini-2.5-pro" data-model="gemini-2.5-pro" data-base="https://generativelanguage.googleapis.com/v1beta" data-key-env="GEMINI_API_KEY">Gemini 2.5 Pro · 长上下文</option>
+              <optgroup label="⭐ Google Gemini">
+                <option value="gemini-3.1-pro" data-model="gemini-3.1-pro" data-base="https://generativelanguage.googleapis.com/v1beta" data-key-env="GEMINI_API_KEY">Gemini 3.1 Pro · 2M 上下文</option>
+                <option value="gemini-3.1-flash" data-model="gemini-3.1-flash" data-base="https://generativelanguage.googleapis.com/v1beta" data-key-env="GEMINI_API_KEY">Gemini 3.1 Flash · 高速低价</option>
               </optgroup>
-              <optgroup label="智谱">
-                <option value="glm-4-plus" data-model="glm-4-plus" data-base="https://open.bigmodel.cn/api/paas/v4" data-key-env="ZHIPU_API_KEY">GLM-4 Plus · 国产GPT</option>
+              <optgroup label="🏛️ 智谱 GLM-5">
+                <option value="glm-5" data-model="glm-5" data-base="https://open.bigmodel.cn/api/paas/v4" data-key-env="ZHIPU_API_KEY">GLM-5 · 旗舰 · 支持 Coding Plan</option>
+                <option value="glm-5-flash" data-model="glm-5-flash" data-base="https://open.bigmodel.cn/api/paas/v4" data-key-env="ZHIPU_API_KEY">GLM-5 Flash · 轻量高速</option>
               </optgroup>
-              <optgroup label="本地 / 其他">
-                <option value="custom" data-model="" data-base="" data-key-env="">自定义模型…</option>
+              <optgroup label="🌙 Kimi 月之暗面">
+                <option value="kimi-k2.6" data-model="kimi-k2.6" data-base="https://api.moonshot.cn/v1" data-key-env="MOONSHOT_API_KEY">Kimi K2.6 · 长上下文旗舰</option>
+                <option value="kimi-k2.7-code" data-model="kimi-k2.7-code" data-base="https://api.moonshot.cn/v1" data-key-env="MOONSHOT_API_KEY">Kimi K2.7 Code · 最新编程 · 支持 Coding Plan</option>
+              </optgroup>
+              <optgroup label="🌋 火山方舟 · 豆包">
+                <option value="doubao-pro" data-model="doubao-pro-256k" data-base="https://ark.cn-beijing.volces.com/api/v3" data-key-env="ARK_API_KEY">豆包-Pro 256K · 支持 Coding Plan</option>
+                <option value="doubao-lite" data-model="doubao-lite-128k" data-base="https://ark.cn-beijing.volces.com/api/v3" data-key-env="ARK_API_KEY">豆包-Lite 128K · 轻量实惠</option>
+              </optgroup>
+              <optgroup label="📘 百度千帆">
+                <option value="ernie-4.5" data-model="ernie-4.5-8k" data-base="https://qianfan.baidubce.com/v2" data-key-env="QIANFAN_API_KEY">ERNIE 4.5 · 旗舰</option>
+                <option value="ernie-speed" data-model="ernie-speed-128k" data-base="https://qianfan.baidubce.com/v2" data-key-env="QIANFAN_API_KEY">ERNIE Speed · 高速低成本</option>
+              </optgroup>
+              <optgroup label="💬 腾讯混元">
+                <option value="hunyuan-turbo" data-model="hunyuan-turbo" data-base="https://api.hunyuan.cloud.tencent.com/v1" data-key-env="HUNYUAN_API_KEY">混元 Turbo · 腾讯生态</option>
+              </optgroup>
+              <optgroup label="🎯 MiniMax">
+                <option value="minimax-m1" data-model="minimax-m1" data-base="https://api.minimax.chat/v1" data-key-env="MINIMAX_API_KEY">MiniMax-M1 · 长上下文推理</option>
+              </optgroup>
+              <optgroup label="⚡ 阶跃星辰">
+                <option value="step-3.5" data-model="step-3.5-flash" data-base="https://api.stepfun.com/v1" data-key-env="STEPFUN_API_KEY">Step 3.5 Flash · 轻量高效</option>
+              </optgroup>
+              <optgroup label="🔗 硅基流动 (聚合平台)">
+                <option value="siliconflow-ds" data-model="deepseek-ai/DeepSeek-V3" data-base="https://api.siliconflow.cn/v1" data-key-env="SILICONFLOW_API_KEY">DeepSeek V3 (硅基) · 国内直连</option>
+                <option value="siliconflow-qwen" data-model="Qwen/Qwen3-235B-A22B" data-base="https://api.siliconflow.cn/v1" data-key-env="SILICONFLOW_API_KEY">Qwen3-235B (硅基) · 免翻墙</option>
+              </optgroup>
+              <optgroup label="🛠️ 本地 / 自定义 (OpenAI 兼容)">
+                <option value="custom" data-model="" data-base="" data-key-env="">自定义端点…</option>
               </optgroup>
             </select>
-          </div>
+            <div style="font-size:10px;color:var(--text-secondary);margin-top:4px">
+              💡 Claude / Gemini 需代理或第三方中转；标注「Coding Plan」的模型需购买厂商订阅套餐
+            </div></div>
         </div>
         <div class="setting-row">
           <div><div class="setting-label">API Base URL</div><div class="setting-desc">模型服务端点</div></div>

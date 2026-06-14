@@ -166,16 +166,44 @@ DEFAULT_CONFIG = {
         "temperature": 0.7,
     },
     "model_presets": {
+        # ── DeepSeek 官方 ──
         "deepseek-v3":      {"model": "deepseek-chat",      "base_url": "https://api.deepseek.com/v1",                        "key_env": "DEEPSEEK_API_KEY"},
         "deepseek-r1":      {"model": "deepseek-reasoner",  "base_url": "https://api.deepseek.com/v1",                        "key_env": "DEEPSEEK_API_KEY"},
-        "qwen-max":         {"model": "qwen-max",           "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
-        "qwen-plus":        {"model": "qwen-plus",          "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
-        "gpt-4o":           {"model": "gpt-4o",             "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
-        "gpt-4o-mini":      {"model": "gpt-4o-mini",        "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
-        "claude-3.5-sonnet": {"model": "claude-3-5-sonnet-20241022", "base_url": "https://api.anthropic.com/v1",              "key_env": "ANTHROPIC_API_KEY"},
-        "claude-3-opus":    {"model": "claude-3-opus-20240229",       "base_url": "https://api.anthropic.com/v1",              "key_env": "ANTHROPIC_API_KEY"},
-        "gemini-2.5-pro":   {"model": "gemini-2.5-pro",     "base_url": "https://generativelanguage.googleapis.com/v1beta",   "key_env": "GEMINI_API_KEY"},
-        "glm-4-plus":       {"model": "glm-4-plus",         "base_url": "https://open.bigmodel.cn/api/paas/v4",               "key_env": "ZHIPU_API_KEY"},
+        # ── 阿里云百炼 · Qwen3 ──
+        "qwen3-max":        {"model": "qwen3-max",          "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
+        "qwen3-plus":       {"model": "qwen3-plus",         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
+        "qwen3-coder":      {"model": "qwen3-coder",        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
+        # ── OpenAI ──
+        "gpt-5.4":          {"model": "gpt-5.4",            "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
+        "o4-mini":          {"model": "o4-mini",            "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
+        "gpt-4.1-mini":     {"model": "gpt-4.1-mini",       "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
+        # ── Anthropic Claude ── (OpenAI 兼容需第三方代理)
+        "claude-opus-4":    {"model": "claude-opus-4-20250514",    "base_url": "https://api.anthropic.com/v1",               "key_env": "ANTHROPIC_API_KEY"},
+        "claude-sonnet-4":  {"model": "claude-sonnet-4-20250514",  "base_url": "https://api.anthropic.com/v1",               "key_env": "ANTHROPIC_API_KEY"},
+        # ── Google Gemini ──
+        "gemini-3.1-pro":   {"model": "gemini-3.1-pro",     "base_url": "https://generativelanguage.googleapis.com/v1beta",   "key_env": "GEMINI_API_KEY"},
+        "gemini-3.1-flash": {"model": "gemini-3.1-flash",   "base_url": "https://generativelanguage.googleapis.com/v1beta",   "key_env": "GEMINI_API_KEY"},
+        # ── 智谱 GLM-5 ──
+        "glm-5":            {"model": "glm-5",              "base_url": "https://open.bigmodel.cn/api/paas/v4",               "key_env": "ZHIPU_API_KEY"},
+        "glm-5-flash":      {"model": "glm-5-flash",        "base_url": "https://open.bigmodel.cn/api/paas/v4",               "key_env": "ZHIPU_API_KEY"},
+        # ── Kimi 月之暗面 ──
+        "kimi-k2.6":        {"model": "kimi-k2.6",          "base_url": "https://api.moonshot.cn/v1",                         "key_env": "MOONSHOT_API_KEY"},
+        "kimi-k2.7-code":   {"model": "kimi-k2.7-code",     "base_url": "https://api.moonshot.cn/v1",                         "key_env": "MOONSHOT_API_KEY"},
+        # ── 火山方舟 · 豆包 ──
+        "doubao-pro":       {"model": "doubao-pro-256k",    "base_url": "https://ark.cn-beijing.volces.com/api/v3",           "key_env": "ARK_API_KEY"},
+        "doubao-lite":      {"model": "doubao-lite-128k",   "base_url": "https://ark.cn-beijing.volces.com/api/v3",           "key_env": "ARK_API_KEY"},
+        # ── 百度千帆 ──
+        "ernie-4.5":        {"model": "ernie-4.5-8k",       "base_url": "https://qianfan.baidubce.com/v2",                    "key_env": "QIANFAN_API_KEY"},
+        "ernie-speed":      {"model": "ernie-speed-128k",   "base_url": "https://qianfan.baidubce.com/v2",                    "key_env": "QIANFAN_API_KEY"},
+        # ── 腾讯混元 ──
+        "hunyuan-turbo":    {"model": "hunyuan-turbo",      "base_url": "https://api.hunyuan.cloud.tencent.com/v1",           "key_env": "HUNYUAN_API_KEY"},
+        # ── MiniMax ──
+        "minimax-m1":       {"model": "minimax-m1",         "base_url": "https://api.minimax.chat/v1",                         "key_env": "MINIMAX_API_KEY"},
+        # ── 阶跃星辰 ──
+        "step-3.5":         {"model": "step-3.5-flash",     "base_url": "https://api.stepfun.com/v1",                         "key_env": "STEPFUN_API_KEY"},
+        # ── 硅基流动 (聚合平台,多模型) ──
+        "siliconflow-ds":   {"model": "deepseek-ai/DeepSeek-V3",  "base_url": "https://api.siliconflow.cn/v1",            "key_env": "SILICONFLOW_API_KEY"},
+        "siliconflow-qwen": {"model": "Qwen/Qwen3-235B-A22B",     "base_url": "https://api.siliconflow.cn/v1",            "key_env": "SILICONFLOW_API_KEY"},
     },
     "data": {
         "a_share": "akshare",
