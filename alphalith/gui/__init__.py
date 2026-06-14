@@ -158,52 +158,130 @@ def _validate_password(pwd: str) -> str | None:
     return None
 
 DEFAULT_CONFIG = {
-    "model": {
-        "provider": "deepseek-v3",
-        "model": "deepseek-chat",
-        "api_key": "",
-        "base_url": "https://api.deepseek.com/v1",
-        "temperature": 0.7,
-    },
-    "model_presets": {
-        # ── DeepSeek 官方 ──
-        "deepseek-v3":      {"model": "deepseek-chat",      "base_url": "https://api.deepseek.com/v1",                        "key_env": "DEEPSEEK_API_KEY"},
-        "deepseek-r1":      {"model": "deepseek-reasoner",  "base_url": "https://api.deepseek.com/v1",                        "key_env": "DEEPSEEK_API_KEY"},
-        # ── 阿里云百炼 · Qwen3 ──
-        "qwen3-max":        {"model": "qwen3-max",          "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
-        "qwen3-plus":       {"model": "qwen3-plus",         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
-        "qwen3-coder":      {"model": "qwen3-coder",        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1", "key_env": "DASHSCOPE_API_KEY"},
-        # ── OpenAI ──
-        "gpt-5.4":          {"model": "gpt-5.4",            "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
-        "o4-mini":          {"model": "o4-mini",            "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
-        "gpt-4.1-mini":     {"model": "gpt-4.1-mini",       "base_url": "https://api.openai.com/v1",                          "key_env": "OPENAI_API_KEY"},
-        # ── Anthropic Claude ── (OpenAI 兼容需第三方代理)
-        "claude-opus-4":    {"model": "claude-opus-4-20250514",    "base_url": "https://api.anthropic.com/v1",               "key_env": "ANTHROPIC_API_KEY"},
-        "claude-sonnet-4":  {"model": "claude-sonnet-4-20250514",  "base_url": "https://api.anthropic.com/v1",               "key_env": "ANTHROPIC_API_KEY"},
-        # ── Google Gemini ──
-        "gemini-3.1-pro":   {"model": "gemini-3.1-pro",     "base_url": "https://generativelanguage.googleapis.com/v1beta",   "key_env": "GEMINI_API_KEY"},
-        "gemini-3.1-flash": {"model": "gemini-3.1-flash",   "base_url": "https://generativelanguage.googleapis.com/v1beta",   "key_env": "GEMINI_API_KEY"},
-        # ── 智谱 GLM-5 ──
-        "glm-5":            {"model": "glm-5",              "base_url": "https://open.bigmodel.cn/api/paas/v4",               "key_env": "ZHIPU_API_KEY"},
-        "glm-5-flash":      {"model": "glm-5-flash",        "base_url": "https://open.bigmodel.cn/api/paas/v4",               "key_env": "ZHIPU_API_KEY"},
-        # ── Kimi 月之暗面 ──
-        "kimi-k2.6":        {"model": "kimi-k2.6",          "base_url": "https://api.moonshot.cn/v1",                         "key_env": "MOONSHOT_API_KEY"},
-        "kimi-k2.7-code":   {"model": "kimi-k2.7-code",     "base_url": "https://api.moonshot.cn/v1",                         "key_env": "MOONSHOT_API_KEY"},
-        # ── 火山方舟 · 豆包 ──
-        "doubao-pro":       {"model": "doubao-pro-256k",    "base_url": "https://ark.cn-beijing.volces.com/api/v3",           "key_env": "ARK_API_KEY"},
-        "doubao-lite":      {"model": "doubao-lite-128k",   "base_url": "https://ark.cn-beijing.volces.com/api/v3",           "key_env": "ARK_API_KEY"},
-        # ── 百度千帆 ──
-        "ernie-4.5":        {"model": "ernie-4.5-8k",       "base_url": "https://qianfan.baidubce.com/v2",                    "key_env": "QIANFAN_API_KEY"},
-        "ernie-speed":      {"model": "ernie-speed-128k",   "base_url": "https://qianfan.baidubce.com/v2",                    "key_env": "QIANFAN_API_KEY"},
-        # ── 腾讯混元 ──
-        "hunyuan-turbo":    {"model": "hunyuan-turbo",      "base_url": "https://api.hunyuan.cloud.tencent.com/v1",           "key_env": "HUNYUAN_API_KEY"},
-        # ── MiniMax ──
-        "minimax-m1":       {"model": "minimax-m1",         "base_url": "https://api.minimax.chat/v1",                         "key_env": "MINIMAX_API_KEY"},
-        # ── 阶跃星辰 ──
-        "step-3.5":         {"model": "step-3.5-flash",     "base_url": "https://api.stepfun.com/v1",                         "key_env": "STEPFUN_API_KEY"},
-        # ── 硅基流动 (聚合平台,多模型) ──
-        "siliconflow-ds":   {"model": "deepseek-ai/DeepSeek-V3",  "base_url": "https://api.siliconflow.cn/v1",            "key_env": "SILICONFLOW_API_KEY"},
-        "siliconflow-qwen": {"model": "Qwen/Qwen3-235B-A22B",     "base_url": "https://api.siliconflow.cn/v1",            "key_env": "SILICONFLOW_API_KEY"},
+    "provider": "deepseek",
+    "model_name": "deepseek-v4-pro",
+    "api_key": "",
+    "base_url": "https://api.deepseek.com/v1",
+    "api_key_env": "DEEPSEEK_API_KEY",
+    "temperature": 0.7,
+    "providers": {
+        "deepseek": {
+            "name": "DeepSeek 官方",
+            "base_url": "https://api.deepseek.com/v1",
+            "key_env": "DEEPSEEK_API_KEY",
+            "models": [
+                {"id": "deepseek-v4-pro",      "name": "V4 Pro · 旗舰",      "desc": "万亿MoE 100万ctx · 编程推理SOTA"},
+                {"id": "deepseek-v4-flash",    "name": "V4 Flash · 高速",    "desc": "极致性价比 轻量高速"},
+            ],
+        },
+        "bailian": {
+            "name": "阿里云百炼 · Qwen3",
+            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            "key_env": "DASHSCOPE_API_KEY",
+            "models": [
+                {"id": "qwen3.6-max-preview",  "name": "Qwen3.6 Max · 旗舰",  "desc": "最新旗舰 · 需 Coding Plan"},
+                {"id": "qwen3-coder-plus",     "name": "Qwen3 Coder Plus · 编程", "desc": "编程专精 · 需 Coding Plan"},
+                {"id": "qwen3.5-omni",         "name": "Qwen3.5 Omni · 多模态", "desc": "图文理解 128K ctx"},
+            ],
+        },
+        "openai": {
+            "name": "OpenAI",
+            "base_url": "https://api.openai.com/v1",
+            "key_env": "OPENAI_API_KEY",
+            "models": [
+                {"id": "gpt-5.5",              "name": "GPT-5.5 · 旗舰",       "desc": "100万ctx 最强通用"},
+                {"id": "gpt-5.6",              "name": "GPT-5.6 · 最新预览",   "desc": "150万ctx 即将发布"},
+                {"id": "o4-mini",              "name": "o4-mini · 推理",       "desc": "推理专精 高性价比"},
+            ],
+        },
+        "claude": {
+            "name": "Anthropic Claude",
+            "base_url": "https://api.anthropic.com/v1",
+            "key_env": "ANTHROPIC_API_KEY",
+            "models": [
+                {"id": "claude-opus-4-7-20250530",  "name": "Opus 4.7 · 旗舰",  "desc": "最强编码 SWE-bench 82% · 需代理"},
+                {"id": "claude-sonnet-4-6-20250217","name": "Sonnet 4.6 · 主力", "desc": "编程高效 性价比 · 需代理"},
+            ],
+        },
+        "gemini": {
+            "name": "Google Gemini",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta",
+            "key_env": "GEMINI_API_KEY",
+            "models": [
+                {"id": "gemini-3.1-pro",        "name": "3.1 Pro · 推理",      "desc": "复杂推理 Agent · 需代理"},
+                {"id": "gemini-3.5-flash",      "name": "3.5 Flash · 最新",    "desc": "Agent & Coding SOTA · 需代理"},
+            ],
+        },
+        "zhipu": {
+            "name": "智谱 GLM",
+            "base_url": "https://open.bigmodel.cn/api/paas/v4",
+            "key_env": "ZHIPU_API_KEY",
+            "models": [
+                {"id": "glm-5.2",              "name": "GLM-5.2 · 最新",       "desc": "6月13日发布 1M ctx 最强国产Coding · Coding Plan"},
+                {"id": "glm-5.2-flash",        "name": "GLM-5.2 Flash · 高速", "desc": "轻量高速 即将发布"},
+            ],
+        },
+        "kimi": {
+            "name": "Kimi 月之暗面",
+            "base_url": "https://api.moonshot.cn/v1",
+            "key_env": "MOONSHOT_API_KEY",
+            "models": [
+                {"id": "kimi-k2.7-code",       "name": "K2.7 Code · 最新编程", "desc": "6月12日发布 1T参数 编程专精 · Coding Plan"},
+                {"id": "kimi-k2.6",            "name": "K2.6 · 旗舰",          "desc": "256K ctx 通用旗舰"},
+            ],
+        },
+        "volcengine": {
+            "name": "火山方舟 · 豆包",
+            "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+            "key_env": "ARK_API_KEY",
+            "models": [
+                {"id": "doubao-pro-256k",      "name": "豆包 Pro 256K · 旗舰", "desc": "字节生态 · Coding Plan"},
+                {"id": "doubao-lite-128k",     "name": "豆包 Lite 128K · 轻量","desc": "高速低价 · Coding Plan"},
+            ],
+        },
+        "qianfan": {
+            "name": "百度千帆",
+            "base_url": "https://qianfan.baidubce.com/v2",
+            "key_env": "QIANFAN_API_KEY",
+            "models": [
+                {"id": "ernie-4.5-8k",         "name": "ERNIE 4.5 · 旗舰",     "desc": "百度旗舰"},
+                {"id": "ernie-speed-128k",     "name": "ERNIE Speed · 高速",   "desc": "高并发低延迟"},
+            ],
+        },
+        "hunyuan": {
+            "name": "腾讯混元",
+            "base_url": "https://api.hunyuan.cloud.tencent.com/v1",
+            "key_env": "HUNYUAN_API_KEY",
+            "models": [
+                {"id": "hunyuan-turbo",         "name": "混元 Turbo · 旗舰",   "desc": "腾讯生态 高速推理"},
+            ],
+        },
+        "minimax": {
+            "name": "MiniMax",
+            "base_url": "https://api.minimax.chat/v1",
+            "key_env": "MINIMAX_API_KEY",
+            "models": [
+                {"id": "minimax-m1",            "name": "MiniMax-M1 · 旗舰",    "desc": "长上下文 推理"},
+            ],
+        },
+        "stepfun": {
+            "name": "阶跃星辰",
+            "base_url": "https://api.stepfun.com/v1",
+            "key_env": "STEPFUN_API_KEY",
+            "models": [
+                {"id": "step-3.5-flash",         "name": "Step 3.5 Flash · 高速", "desc": "轻量高效"},
+            ],
+        },
+        "siliconflow": {
+            "name": "硅基流动 (国内直连)",
+            "base_url": "https://api.siliconflow.cn/v1",
+            "key_env": "SILICONFLOW_API_KEY",
+            "models": [
+                {"id": "deepseek-ai/DeepSeek-V4-Pro",   "name": "DeepSeek V4 Pro (代理)",  "desc": "国内直连 免翻墙"},
+                {"id": "Qwen/Qwen3.6-Max",              "name": "Qwen3.6 Max (代理)",      "desc": "国内直连 免翻墙"},
+                {"id": "Pro/deepseek-ai/DeepSeek-V4-Pro","name": "DS V4 Pro (付费增强)",    "desc": "硅基增强版 效果更优"},
+            ],
+        },
     },
     "data": {
         "a_share": "akshare",

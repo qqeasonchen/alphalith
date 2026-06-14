@@ -886,66 +886,21 @@ a { color:inherit; text-decoration:none; }
       <div class="setting-group">
         <div class="setting-group-title">🤖 LLM 模型</div>
         <div class="setting-row">
-          <div><div class="setting-label">模型选择</div><div class="setting-desc">切换后自动填入对应的 API 地址和参数</div></div>
+          <div><div class="setting-label">模型供应商</div><div class="setting-desc">选择大模型服务商，自动切换模型列表</div></div>
           <div class="setting-control">
-                        <select class="setting-input" id="setModelPreset" onchange="onModelPresetChange(this)" style="cursor:pointer;max-width:420px">
-              <optgroup label="🔥 DeepSeek 官方">
-                <option value="deepseek-v3" data-model="deepseek-chat" data-base="https://api.deepseek.com/v1" data-key-env="DEEPSEEK_API_KEY">DeepSeek V3.1 · 全能旗舰 ¥1/M tokens</option>
-                <option value="deepseek-r1" data-model="deepseek-reasoner" data-base="https://api.deepseek.com/v1" data-key-env="DEEPSEEK_API_KEY">DeepSeek R1 · 深度推理</option>
-              </optgroup>
-              <optgroup label="☁️ 阿里云百炼 · Qwen3">
-                <option value="qwen3-max" data-model="qwen3-max" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen3-Max · 旗舰 · 支持 Coding Plan</option>
-                <option value="qwen3-plus" data-model="qwen3-plus" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen3-Plus · 均衡性价比</option>
-                <option value="qwen3-coder" data-model="qwen3-coder" data-base="https://dashscope.aliyuncs.com/compatible-mode/v1" data-key-env="DASHSCOPE_API_KEY">Qwen3-Coder · 编程专精 · 需 Coding Plan</option>
-              </optgroup>
-              <optgroup label="🌐 OpenAI">
-                <option value="gpt-5.4" data-model="gpt-5.4" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">GPT-5.4 · 1M 上下文 · 旗舰</option>
-                <option value="o4-mini" data-model="o4-mini" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">o4-mini · 推理轻量</option>
-                <option value="gpt-4.1-mini" data-model="gpt-4.1-mini" data-base="https://api.openai.com/v1" data-key-env="OPENAI_API_KEY">GPT-4.1-mini · 高性价比</option>
-              </optgroup>
-              <optgroup label="🧠 Anthropic Claude">
-                <option value="claude-opus-4" data-model="claude-opus-4-20250514" data-base="https://api.anthropic.com/v1" data-key-env="ANTHROPIC_API_KEY">Claude Opus 4 · 最强编码 · 需代理</option>
-                <option value="claude-sonnet-4" data-model="claude-sonnet-4-20250514" data-base="https://api.anthropic.com/v1" data-key-env="ANTHROPIC_API_KEY">Claude Sonnet 4 · 编程高效 · 需代理</option>
-              </optgroup>
-              <optgroup label="⭐ Google Gemini">
-                <option value="gemini-3.1-pro" data-model="gemini-3.1-pro" data-base="https://generativelanguage.googleapis.com/v1beta" data-key-env="GEMINI_API_KEY">Gemini 3.1 Pro · 2M 上下文</option>
-                <option value="gemini-3.1-flash" data-model="gemini-3.1-flash" data-base="https://generativelanguage.googleapis.com/v1beta" data-key-env="GEMINI_API_KEY">Gemini 3.1 Flash · 高速低价</option>
-              </optgroup>
-              <optgroup label="🏛️ 智谱 GLM-5">
-                <option value="glm-5" data-model="glm-5" data-base="https://open.bigmodel.cn/api/paas/v4" data-key-env="ZHIPU_API_KEY">GLM-5 · 旗舰 · 支持 Coding Plan</option>
-                <option value="glm-5-flash" data-model="glm-5-flash" data-base="https://open.bigmodel.cn/api/paas/v4" data-key-env="ZHIPU_API_KEY">GLM-5 Flash · 轻量高速</option>
-              </optgroup>
-              <optgroup label="🌙 Kimi 月之暗面">
-                <option value="kimi-k2.6" data-model="kimi-k2.6" data-base="https://api.moonshot.cn/v1" data-key-env="MOONSHOT_API_KEY">Kimi K2.6 · 长上下文旗舰</option>
-                <option value="kimi-k2.7-code" data-model="kimi-k2.7-code" data-base="https://api.moonshot.cn/v1" data-key-env="MOONSHOT_API_KEY">Kimi K2.7 Code · 最新编程 · 支持 Coding Plan</option>
-              </optgroup>
-              <optgroup label="🌋 火山方舟 · 豆包">
-                <option value="doubao-pro" data-model="doubao-pro-256k" data-base="https://ark.cn-beijing.volces.com/api/v3" data-key-env="ARK_API_KEY">豆包-Pro 256K · 支持 Coding Plan</option>
-                <option value="doubao-lite" data-model="doubao-lite-128k" data-base="https://ark.cn-beijing.volces.com/api/v3" data-key-env="ARK_API_KEY">豆包-Lite 128K · 轻量实惠</option>
-              </optgroup>
-              <optgroup label="📘 百度千帆">
-                <option value="ernie-4.5" data-model="ernie-4.5-8k" data-base="https://qianfan.baidubce.com/v2" data-key-env="QIANFAN_API_KEY">ERNIE 4.5 · 旗舰</option>
-                <option value="ernie-speed" data-model="ernie-speed-128k" data-base="https://qianfan.baidubce.com/v2" data-key-env="QIANFAN_API_KEY">ERNIE Speed · 高速低成本</option>
-              </optgroup>
-              <optgroup label="💬 腾讯混元">
-                <option value="hunyuan-turbo" data-model="hunyuan-turbo" data-base="https://api.hunyuan.cloud.tencent.com/v1" data-key-env="HUNYUAN_API_KEY">混元 Turbo · 腾讯生态</option>
-              </optgroup>
-              <optgroup label="🎯 MiniMax">
-                <option value="minimax-m1" data-model="minimax-m1" data-base="https://api.minimax.chat/v1" data-key-env="MINIMAX_API_KEY">MiniMax-M1 · 长上下文推理</option>
-              </optgroup>
-              <optgroup label="⚡ 阶跃星辰">
-                <option value="step-3.5" data-model="step-3.5-flash" data-base="https://api.stepfun.com/v1" data-key-env="STEPFUN_API_KEY">Step 3.5 Flash · 轻量高效</option>
-              </optgroup>
-              <optgroup label="🔗 硅基流动 (聚合平台)">
-                <option value="siliconflow-ds" data-model="deepseek-ai/DeepSeek-V3" data-base="https://api.siliconflow.cn/v1" data-key-env="SILICONFLOW_API_KEY">DeepSeek V3 (硅基) · 国内直连</option>
-                <option value="siliconflow-qwen" data-model="Qwen/Qwen3-235B-A22B" data-base="https://api.siliconflow.cn/v1" data-key-env="SILICONFLOW_API_KEY">Qwen3-235B (硅基) · 免翻墙</option>
-              </optgroup>
-              <optgroup label="🛠️ 本地 / 自定义 (OpenAI 兼容)">
-                <option value="custom" data-model="" data-base="" data-key-env="">自定义端点…</option>
-              </optgroup>
+            <select class="setting-input" id="setProvider" onchange="onProviderChange(this)" style="cursor:pointer;max-width:420px">
+              <option value="">— 请选择供应商 —</option>
+            </select></div>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-label">模型 ID</div><div class="setting-desc">选择预设模型或输入自定义名称</div></div>
+          <div class="setting-control">
+            <select class="setting-input" id="setModelId" onchange="onModelIdChange(this)" style="cursor:pointer;max-width:420px">
+              <option value="">— 请先选择供应商 —</option>
             </select>
-            <div style="font-size:10px;color:var(--text-secondary);margin-top:4px">
-              💡 Claude / Gemini 需代理或第三方中转；标注「Coding Plan」的模型需购买厂商订阅套餐
+            <input class="setting-input" id="setCustomModel" placeholder="自定义模型ID（覆盖上方选择）" style="display:none;margin-top:6px;max-width:420px" oninput="onCustomModelChange()">
+            <div style="font-size:10px;color:var(--text-secondary);margin-top:2px">
+              💡 选「🔧 自定义模型ID…」可输入任意标识；标注「🛡️需代理」的供应商在国内需配置代理访问
             </div></div>
         </div>
         <div class="setting-row">
@@ -1099,6 +1054,7 @@ function switchPage(page) {
   document.getElementById('breadcrumb').textContent = pageTitles[page] || page;
   // Auto-load data on page entry
   if (page === 'history') loadHistory();
+  if (page === 'settings') loadSettings();
   setTimeout(disposeCharts, 50);
   // Format hint for symbol inputs
 
@@ -1981,78 +1937,142 @@ async function handleChat(text) {
 }
 
 // ============================================================
-// SETTINGS
+// SETTINGS — 两级供应商/模型选择
 // ============================================================
+var _providers = {}; // {provider_key: {name,base_url,key_env,models:[{id,name,desc}]}}
+
+// 从后端获取供应商列表
+async function loadProviders() {
+  try {
+    const cfg = await api('/api/config');
+    if (cfg && cfg.providers) _providers = cfg.providers;
+    const sel = document.getElementById('setProvider');
+    sel.innerHTML = '<option value="">— 请选择供应商 —</option>';
+    for (var k in _providers) {
+      var p = _providers[k];
+      var icon = '';
+      if (p.name.includes('DeepSeek')) icon = '🔥 ';
+      else if (p.name.includes('百炼')) icon = '☁️ ';
+      else if (p.name.includes('OpenAI')) icon = '🌐 ';
+      else if (p.name.includes('Claude')) icon = '🧠 ';
+      else if (p.name.includes('Gemini')) icon = '⭐ ';
+      else if (p.name.includes('智谱')) icon = '🏛️ ';
+      else if (p.name.includes('Kimi')) icon = '🌙 ';
+      else if (p.name.includes('火山')) icon = '🌋 ';
+      else if (p.name.includes('千帆')) icon = '📘 ';
+      else if (p.name.includes('混元')) icon = '💬 ';
+      else if (p.name.includes('MiniMax')) icon = '🎯 ';
+      else if (p.name.includes('阶跃')) icon = '⚡ ';
+      else if (p.name.includes('硅基')) icon = '🔗 ';
+      sel.innerHTML += '<option value="' + k + '">' + icon + p.name + '</option>';
+    }
+  } catch(e) { console.error('加载供应商失败:', e); }
+}
+
+// 供应商切换 → 刷新模型列表
+function onProviderChange(sel) {
+  var pk = sel.value;
+  var mid = document.getElementById('setModelId');
+  var cus = document.getElementById('setCustomModel');
+  cus.style.display = 'none';
+  cus.value = '';
+  
+  if (!pk || !_providers[pk]) {
+    mid.innerHTML = '<option value="">— 请先选择供应商 —</option>';
+    document.getElementById('setApiBase').value = '';
+    document.getElementById('setApiKeyDesc').textContent = '环境变量: —';
+    return;
+  }
+  
+  var pd = _providers[pk];
+  document.getElementById('setApiBase').value = pd.base_url || '';
+  document.getElementById('setApiKeyDesc').textContent = '环境变量: ' + (pd.key_env || '自行设置');
+  
+  mid.innerHTML = '';
+  var models = pd.models || [];
+  for (var i = 0; i < models.length; i++) {
+    var m = models[i];
+    mid.innerHTML += '<option value="' + m.id + '" title="' + (m.desc||'') + '">' + (m.name||m.id) + '</option>';
+  }
+  // 始终保留自定义选项
+  mid.innerHTML += '<option value="__custom__">🔧 自定义模型 ID…</option>';
+}
+
+// 模型切换 → 显示/隐藏自定义输入
+function onModelIdChange(sel) {
+  var cus = document.getElementById('setCustomModel');
+  if (sel.value === '__custom__') {
+    cus.style.display = '';
+    cus.focus();
+  } else {
+    cus.style.display = 'none';
+    cus.value = '';
+  }
+}
+
+// 自定义模型变化（预留）
+function onCustomModelChange() {}
+
+// 保存配置
 async function saveSettings() {
   try {
-    const config = {};
-    const modelSel = document.getElementById('setModelPreset');
-    const preset = modelSel.value;
-    const selOpt = modelSel.options[modelSel.selectedIndex];
-    const model = selOpt.dataset.model || document.getElementById('setCustomModel')?.value?.trim() || '';
-    const base = document.getElementById('setApiBase').value.trim();
-    const key = document.getElementById('setApiKey').value.trim();
-    if (model) { config.model = config.model || {}; config.model.model = model; }
-    if (base)  { config.model = config.model || {}; config.model.base_url = base; }
-    if (key)   { config.model = config.model || {}; config.model.api_key = key; }
-    if (preset) { config.model = config.model || {}; config.model.provider = preset; }
+    var provider = document.getElementById('setProvider').value;
+    var modelId = document.getElementById('setModelId').value;
+    var customModel = document.getElementById('setCustomModel').value.trim();
+    var finalModel = (modelId === '__custom__' || !modelId) ? customModel : modelId;
+    
+    var config = {
+      provider: provider,
+      model_name: finalModel,
+      base_url: document.getElementById('setApiBase').value.trim(),
+      api_key: document.getElementById('setApiKey').value.trim(),
+      api_key_env: document.getElementById('setApiKeyDesc').textContent.replace('环境变量: ', ''),
+    };
+    
     await api('/api/config', config);
-    addMsg('✅ 配置已保存', 'assistant');
+    addMsg('✅ 配置已保存: ' + (finalModel || '默认'), 'alphalith');
   } catch (err) {
     addMsg('❌ 保存失败: ' + (err.message || err), 'error');
   }
 }
 
+// 加载已保存的配置
 async function loadSettings() {
   try {
+    // 先加载供应商列表
+    await loadProviders();
     const cfg = await api('/api/config');
-    if (!cfg || !cfg.model) return;
-    const m = cfg.model;
-    if (m.base_url) document.getElementById('setApiBase').value = m.base_url;
-    if (m.api_key)  document.getElementById('setApiKey').value = m.api_key || '';
-    // Match preset from saved model name
-    const sel = document.getElementById('setModelPreset');
-    if (m.model || m.provider) {
-      for (let i = 0; i < sel.options.length; i++) {
-        const opt = sel.options[i];
-        if (opt.dataset.model === m.model || opt.value === m.provider) {
-          sel.selectedIndex = i;
-          onModelPresetChange(sel);
-          break;
+    if (!cfg) return;
+    
+    // 恢复供应商选择
+    if (cfg.provider) {
+      var prov = document.getElementById('setProvider');
+      if (_providers[cfg.provider]) {
+        prov.value = cfg.provider;
+        onProviderChange(prov);
+        // 恢复模型选择
+        await new Promise(r => setTimeout(r, 50));
+        var mid = document.getElementById('setModelId');
+        if (cfg.model_name) {
+          var found = false;
+          for (var i = 0; i < mid.options.length; i++) {
+            if (mid.options[i].value === cfg.model_name) { found = true; break; }
+          }
+          if (found) {
+            mid.value = cfg.model_name;
+          } else if (cfg.model_name) {
+            mid.value = '__custom__';
+            var cus = document.getElementById('setCustomModel');
+            cus.style.display = '';
+            cus.value = cfg.model_name;
+          }
         }
       }
     }
+    
+    if (cfg.base_url) document.getElementById('setApiBase').value = cfg.base_url;
+    if (cfg.api_key)   document.getElementById('setApiKey').value = cfg.api_key || '';
   } catch (e) { /* ignore */ }
-}
-
-function onModelPresetChange(sel) {
-  const opt = sel.options[sel.selectedIndex];
-  const model = opt.dataset.model;
-  const base  = opt.dataset.base;
-  const keyEnv= opt.dataset.keyEnv;
-  const preset= opt.value;
-  if (preset === 'custom') {
-    // Show custom model input
-    let cm = document.getElementById('customModelRow');
-    if (!cm) {
-      cm = document.createElement('div');
-      cm.id = 'customModelRow';
-      cm.className = 'setting-row';
-      cm.innerHTML = `<div><div class="setting-label">自定义模型名</div><div class="setting-desc">OpenAI 兼容的模型标识</div></div>
-        <div class="setting-control"><input class="setting-input" id="setCustomModel" placeholder="如: deepseek-chat"></div>`;
-      sel.closest('.setting-group').insertBefore(cm, sel.closest('.setting-row').nextSibling.nextSibling);
-    }
-    cm.style.display = '';
-    document.getElementById('setApiBase').value = '';
-    document.getElementById('setApiBase').placeholder = '输入自定义 API 地址';
-    document.getElementById('setApiKeyDesc').textContent = '输入自定义 API Key';
-    return;
-  }
-  // Hide custom model row
-  const cm = document.getElementById('customModelRow');
-  if (cm) cm.style.display = 'none';
-  document.getElementById('setApiBase').value = base || '';
-  document.getElementById('setApiKeyDesc').textContent = '环境变量: ' + (keyEnv || '自行设置');
 }
 
 // ============================================================

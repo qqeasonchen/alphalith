@@ -233,17 +233,25 @@ alphalith gui --no-browser       # 仅启动服务
 - 💬 **底部 AI 对话**（支持 /命令 快捷操作，Craft/Auto 模式切换）
 - 📊 **ECharts 图表**（暗黑/浅色主题自适应配色，收益曲线 / 净值走势）
 
-### 支持模型（系统配置页一键切换）
+### 支持模型（供应商/模型两级选择 + 自定义ID）
 
-| 厂商 | 模型 | 默认 API |
-|---|---|---|
-| DeepSeek | V3 / R1 | `api.deepseek.com/v1` |
-| 通义千问 | Max / Plus | `dashscope.aliyuncs.com` |
-| OpenAI | GPT-4o / 4o-mini | `api.openai.com/v1` |
-| Anthropic | Claude 3.5 Sonnet / 3 Opus | `api.anthropic.com/v1` |
-| Google | Gemini 2.5 Pro | `generativelanguage.googleapis.com` |
-| 智谱 | GLM-4 Plus | `open.bigmodel.cn/api/paas/v4` |
-| 自定义 | 任意 OpenAI 兼容端点 | 手动填写 |
+| 厂商 | 最新模型 | 发布时间 | Coding Plan |
+|------|---------|---------|:---:|
+| **DeepSeek** | V4 Pro · V4 Flash | 2026.04 | — |
+| **阿里百炼** | Qwen3.6 Max · Coder Plus · Omni | 2026.05 | ✅ |
+| **OpenAI** | GPT-5.5 · o4-mini | 2026.04 | — |
+| **Anthropic** | Claude Opus 4.7 · Sonnet 4.6 | 2026.05 | — |
+| **Google** | Gemini 3.5 Flash · 3.1 Pro | 2026.06 | — |
+| **智谱** | GLM-5.2 · Flash | 2026.06.13 🆕 | ✅ |
+| **Kimi** | K2.7 Code · K2.6 | 2026.06.12 🆕 | ✅ |
+| **火山方舟** | 豆包-Pro 256K · Lite | 2026 | ✅ |
+| **百度千帆** | ERNIE 4.5 · Speed | 2026 | — |
+| **腾讯混元** | 混元 Turbo | 2026 | — |
+| **MiniMax** | MiniMax-M1 | 2026 | — |
+| **阶跃星辰** | Step 3.5 Flash | 2026 | — |
+| **硅基流动** | DS V4 Pro / Qwen3.6 (代理) | — | — |
+
+> 💡 海外供应商（OpenAI / Claude / Gemini）需代理或第三方中转；标注 ✅ 的提供固定月费 Coding Plan 编程订阅。支持**自定义模型 ID** 输入。
 
 ---
 
