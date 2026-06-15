@@ -1088,6 +1088,8 @@ a { color:inherit; text-decoration:none; }
         </div>
       </div>
       <button class="btn-primary" onclick="saveSettings()">💾 保存配置</button>
+      <button class="btn-secondary" id="btnTestConn" onclick="testConnection()" style="margin-left:8px">🔍 测试连接</button>
+      <span id="testConnStatus" style="margin-left:10px;font-size:12px;color:var(--text-secondary)"></span>
     </div>
   </div>
 </div>
@@ -2261,6 +2263,45 @@ async function saveSettings() {
   }
 }
 
+// 测试连接
+async function testConnection() {
+  var btn = document.getElementById('btnTestConn');
+  var status = document.getElementById('testConnStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ 测试中…';
+  status.textContent = '';
+  status.style.color = 'var(--text-secondary)';
+  
+  try {
+    var provider = document.getElementById('setProvider').value;
+    var modelId = document.getElementById('setModelId').value;
+    var customModel = document.getElementById('setCustomModel').value.trim();
+    var finalModel = (modelId === '__custom__' || !modelId) ? customModel : modelId;
+    
+    var data = await api('/api/config/test', {
+      provider: provider,
+      model_name: finalModel,
+      base_url: document.getElementById('setApiBase').value.trim(),
+      api_key: document.getElementById('setApiKey').value.trim(),
+      api_key_env: document.getElementById('setApiKeyDesc').textContent.replace('环境变量: ', ''),
+    });
+    
+    if (data.ok) {
+      status.textContent = '✅ 连接成功 — 模型: ' + (data.model || '?') + '，延迟: ' + data.latency_ms + 'ms';
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = '⚠️ ' + (data.error || '未知错误') + ' (耗时' + data.latency_ms + 'ms)';
+      status.style.color = 'var(--amber)';
+    }
+  } catch (err) {
+    status.textContent = '❌ 请求失败: ' + (err.message || err);
+    status.style.color = 'var(--red)';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 测试连接';
+  }
+}
+
 // 加载已保存的配置
 async function loadSettings() {
   try {
@@ -3107,7 +3148,7 @@ async function runSentiment() {
   const symbol = document.getElementById('sentSymbol').value.trim();
   if (!symbol) return;
   addMsg('📰 舆情分析: ' + symbol + ' — 正在从多源抓取数据...', 'alphalith');
-  showProgress('sentimentResult', 15, '🌐 Google News + 📊 Yahoo + 📈 Finviz + 💬 StockTwits + 📰 东财...');
+  showProgress('sentimentResult', 15, '🌐 Google + 📊 Yahoo + 📈 Finviz + 💬 StockTwits + 📰 东财 + ❄️ 雪球 + 🤖 Reddit...');
   
   try {
     const data = await api('/api/sentiment', { symbol }, 'POST');
@@ -3121,8 +3162,8 @@ async function runSentiment() {
     const textColor = overall === 'bullish' ? 'var(--green)' : overall === 'bearish' ? 'var(--red)' : 'var(--amber)';
 
     // 来源标签映射 (6个数据源)
-    const srcLabels = { googlenews:'🌐Google', yahoo:'📊Yahoo', finviz:'📈Finviz', stocktwits:'💬StockTwits', eastmoney:'📰东财', sina:'📡新浪' };
-    const srcColors = { googlenews:'#4285F4', yahoo:'#6001D2', finviz:'#e74c3c', stocktwits:'#1da1f2', eastmoney:'#e4393c', sina:'#f39c12' };
+    const srcLabels = { googlenews:'🌐Google', yahoo:'📊Yahoo', finviz:'📈Finviz', stocktwits:'💬StockTwits', eastmoney:'📰东财', sina:'📡新浪', xueqiu:'❄️雪球', reddit:'🤖Reddit' };
+    const srcColors = { googlenews:'#4285F4', yahoo:'#6001D2', finviz:'#e74c3c', stocktwits:'#1da1f2', eastmoney:'#e4393c', sina:'#f39c12', xueqiu:'#4A90D9', reddit:'#FF4500' };
 
     // 来源统计条
     const srcStats = data.source_stats || {};

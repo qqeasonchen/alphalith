@@ -612,6 +612,66 @@ class GuiHandler(BaseHTTPRequestHandler):
                 self._send_json({"ok": True, "path": str(CONFIG_PATH)})
             except json.JSONDecodeError as e:
                 self._send_error_json(f"Invalid JSON: {e}", 400)
+            except PermissionError:
+                self._send_error_json("无写入权限，请检查 ~/.alphalith/ 目录权限", 500)
+            except OSError as e:
+                self._send_error_json(f"文件保存失败: {e}", 500)
+            except Exception as e:
+                self._send_error_json(f"未知错误: {e}", 500)
+            return
+
+        # ── 模型连接测试 ──
+        if path == "/api/config/test":
+            try:
+                body = json.loads(self._read_body().decode("utf-8"))
+                provider_key = body.get("provider", "")
+                api_key = body.get("api_key", "")
+                base_url = body.get("base_url", "")
+                model_name = body.get("model_name", "")
+                if not base_url:
+                    self._send_error_json("请先选择供应商以获取 API 地址", 400)
+                    return
+                # 用提供的参数构造 LLM 并发送一个最简测试请求
+                import urllib.request
+                import os as _os
+                test_key = api_key or _os.environ.get(body.get("api_key_env", ""), "")
+                if not test_key:
+                    self._send_json({"ok": False, "error": "请先填写 API Key", "latency_ms": 0})
+                    return
+                t0 = time.time()
+                try:
+                    req_body = json.dumps({
+                        "model": model_name or "default",
+                        "messages": [{"role": "user", "content": "1+1=?"}],
+                        "max_tokens": 5,
+                    }).encode("utf-8")
+                    req = urllib.request.Request(
+                        f"{base_url.rstrip('/')}/chat/completions",
+                        data=req_body,
+                        headers={
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {test_key}",
+                        },
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        result = json.loads(resp.read().decode("utf-8"))
+                    latency = round((time.time() - t0) * 1000)
+                    model_used = result.get("model", "?")
+                    self._send_json({"ok": True, "model": model_used, "latency_ms": latency})
+                except urllib.error.HTTPError as e:
+                    err_body = ""
+                    try: err_body = e.read().decode("utf-8")[:200]
+                    except: pass
+                    latency = round((time.time() - t0) * 1000)
+                    self._send_json({"ok": False, "error": f"HTTP {e.code}: {err_body or e.reason}", "latency_ms": latency})
+                except urllib.error.URLError as e:
+                    latency = round((time.time() - t0) * 1000)
+                    self._send_json({"ok": False, "error": f"连接失败: {e.reason}", "latency_ms": latency})
+            except json.JSONDecodeError as e:
+                self._send_error_json(f"Invalid JSON: {e}", 400)
+            except Exception as e:
+                self._send_error_json(f"测试错误: {e}", 500)
             return
 
         if path == "/api/auth/register":

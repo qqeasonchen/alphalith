@@ -100,10 +100,24 @@ SOURCE_META = {
         "desc": "实时价格变化上下文",
         "coverage": "A/HK/US",
     },
+    "xueqiu": {
+        "name": "雪球",
+        "icon": "❄️",
+        "color": "#4A90D9",
+        "desc": "投资者社区热点讨论与个股分析，20+条",
+        "coverage": "A/HK/US",
+    },
+    "reddit": {
+        "name": "Reddit",
+        "icon": "🤖",
+        "color": "#FF4500",
+        "desc": "r/wallstreetbets, r/stocks 等美股社区讨论",
+        "coverage": "美股",
+    },
 }
 
 # 默认全启用
-DEFAULT_ENABLED_SOURCES = ["googlenews", "yahoo", "finviz", "stocktwits", "eastmoney", "sina"]
+DEFAULT_ENABLED_SOURCES = ["googlenews", "yahoo", "finviz", "stocktwits", "eastmoney", "sina", "xueqiu", "reddit"]
 
 
 # ═══════════════════════════════════════════════════════════════
