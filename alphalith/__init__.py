@@ -4,7 +4,7 @@ AI 投研委员会 — 多智能体 LLM 投资决策框架
 The Bedrock of AI-Driven Alpha
 """
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __author__ = "Alphalith Project"
 
 from .core import analyze

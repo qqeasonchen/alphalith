@@ -34,6 +34,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
+from .. import __version__
+
 CONFIG_PATH = Path.home() / ".alphalith" / "config.json"
 USERS_PATH = Path.home() / ".alphalith" / "users.json"
 GUI_DIR = Path(__file__).parent
@@ -472,7 +474,9 @@ class GuiHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/config":
-            self._send_json(load_config())
+            cfg = load_config()
+            cfg["_version"] = __version__
+            self._send_json(cfg)
             return
 
         if path == "/api/auth/me":
@@ -584,10 +588,15 @@ class GuiHandler(BaseHTTPRequestHandler):
             custom = cfg.get("custom_sentiment_sources", {})
             all_sources = dict(SOURCE_META)
             all_sources.update(custom)
+            # 合并已保存的顺序与 SOURCE_META 全集，确保新增源不会丢失
+            saved_order = cfg.get("sentiment_source_order", [])
+            full_order = list(dict.fromkeys(saved_order + list(SOURCE_META.keys())))
+            saved_enabled = cfg.get("sentiment_sources", [])
+            full_enabled = list(dict.fromkeys(saved_enabled + list(SOURCE_META.keys())))
             self._send_json({
                 "sources": all_sources,
-                "enabled": cfg.get("sentiment_sources", list(SOURCE_META.keys())),
-                "order": cfg.get("sentiment_source_order", list(SOURCE_META.keys())),
+                "enabled": full_enabled,
+                "order": full_order,
                 "custom_sources": custom,
             })
             return
