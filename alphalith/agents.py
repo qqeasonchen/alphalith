@@ -258,51 +258,100 @@ def run_situation_summariser(
 
 
 # ═══════════════════════════════════════════════════════════════
-# Layer II — 多头/空头研究员（辩论）
+# Layer II — 多头/空头研究员（逐点辩论）
 # ═══════════════════════════════════════════════════════════════
+
+_BULL_SYS = (
+    "你是专业的「多头研究员」。\n"
+    "辩论风格：理性、证据驱动、逐点回应。\n"
+    "输出格式要求：\n"
+    "1. 开头一句话总结核心看多逻辑\n"
+    "2. 用「📌 论点 N：」标记 2-3 个要点，每个引用具体数字/新闻\n"
+    "3. 如非首轮，必须先回应对手上一轮的质疑，格式：「⚡ 回击：空头认为 X，但数据/事实表明 Y」\n"
+    "4. 总字数 150-300 字"
+)
+
+_BEAR_SYS = (
+    "你是专业的「空头研究员」。\n"
+    "辩论风格：质疑但不情绪化、逻辑拆解、寻找盲点。\n"
+    "输出格式要求：\n"
+    "1. 开头一句话指出多头最薄弱的假设或论据\n"
+    "2. 用「📌 质疑 N：」标记 2-3 个要点，每个引用具体数据\n"
+    "3. 如非首轮，必须先回应对手上一轮的反驳，格式：「⚡ 回应：多头称 X，但数据/事实表明 Y」\n"
+    "4. 总字数 150-300 字"
+)
+
 
 def run_debate(
     llm: LLM, md: MarketData, reports: list[AgentReport], rounds: int = 1
 ) -> list[DebateRound]:
-    """Layer II: 多头研究员 vs 空头研究员，N 轮辩论。"""
+    """Layer II: 多头 vs 空头，逐点辩论，模拟 TradingAgents 风格。
+
+    每一轮：
+    - 多头先发言，引用分析师结论 + 市场数据，给出具体看多论点
+    - 空头逐点回击，指出多头逻辑漏洞或数据盲点
+    - 下一轮多头基于空头质疑调整/强化论点
+    """
     if rounds <= 0:
         return []
+
     snapshot = make_snapshot(md)
-    summary = "\n".join(
-        f"- {r.name}：{r.stance} ({r.confidence:.0%}) {r.summary}" for r in reports
+    analyst_summary = "\n".join(
+        f"【{r.name}】{r.stance} (信心 {r.confidence:.0%})：{r.summary}"
+        for r in reports
     )
+
     debates: list[DebateRound] = []
-    last_bull = ""
-    last_bear = ""
-    for i in range(rounds):
-        rebuttal_hint = ""
-        if i > 0:
-            rebuttal_hint = f"\n上一轮对手观点（请针对性反驳）：{last_bear or last_bull}\n"
-        try:
-            bull = llm.chat(
-                f"你是「多头研究员」。\n\n【市场快照】\n{snapshot}\n\n"
-                f"【4 位分析师结论】\n{summary}\n{rebuttal_hint}\n"
-                f"请给出 80 字以内的看多论点，必须引用快照中的具体数字或新闻原文。",
-                system="只输出论点本身，不要前缀，不要客套。",
+
+    for rnd in range(rounds):
+        # ── 构建本轮的对抗上下文 ──
+        prev_collapse = ""
+        if rnd > 0:
+            prev_collapse = (
+                "\n\n【前一轮辩论全文】⚠️ 你必须逐点回应对手观点：\n"
+                f"🐂 多头 R{rnd}：{debates[-1].bull}\n"
+                f"🐻 空头 R{rnd}：{debates[-1].bear}\n"
             )
-            last_bull = bull.strip()
-        except Exception as e:
-            last_bull = f"看多方调用失败({e.__class__.__name__})"
-        try:
-            bear = llm.chat(
-                f"你是「空头研究员」。\n\n【市场快照】\n{snapshot}\n\n"
-                f"【4 位分析师结论】\n{summary}\n"
-                f"\n上一轮对手观点（请针对性反驳）：{last_bull}\n"
-                f"请给出 80 字以内的看空论点，必须引用快照中的具体数字或新闻原文。",
-                system="只输出论点本身，不要前缀，不要客套。",
+
+        # ── 多头发言 ──
+        bull_rebuttal = ""
+        if rnd > 0:
+            bull_rebuttal = (
+                f"【上一轮对方的质疑】你上一轮论点被对方这样攻击，本轮必须回应：\n"
+                f"空头: {debates[-1].bear}\n"
             )
-            last_bear = bear.strip()
-        except Exception as e:
-            last_bear = f"看空方调用失败({e.__class__.__name__})"
-        debates.append(
-            DebateRound(bull=last_bull[:300], bear=last_bear[:300])
+
+        bull_prompt = (
+            f"你是「多头研究员」。第 {rnd + 1} 轮辩论。\n\n"
+            f"【市场快照】\n{snapshot}\n\n"
+            f"【4 位分析师结论】\n{analyst_summary}\n"
+            f"{prev_collapse}"
+            f"{bull_rebuttal}"
         )
+        bull = _safe_chat(llm, bull_prompt, _BULL_SYS)
+
+        # ── 空头发言 ──
+        bear_prompt = (
+            f"你是「空头研究员」。第 {rnd + 1} 轮辩论。\n\n"
+            f"【市场快照】\n{snapshot}\n\n"
+            f"【4 位分析师结论】\n{analyst_summary}\n"
+            f"{prev_collapse}"
+            f"【本轮对手刚发表的论点】⚠️ 你必须逐条拆解对方逻辑漏洞：\n"
+            f"多头: {bull}\n"
+        )
+        bear = _safe_chat(llm, bear_prompt, _BEAR_SYS)
+
+        debates.append(DebateRound(bull=bull[:600], bear=bear[:600]))
+
     return debates
+
+
+def _safe_chat(llm: LLM, prompt: str, system: str) -> str:
+    """调用 LLM.chat，异常时返回降级信息。"""
+    try:
+        return llm.chat(prompt, system=system).strip()
+    except Exception as e:
+        return f"调用失败({e.__class__.__name__})"
 
 
 # ═══════════════════════════════════════════════════════════════

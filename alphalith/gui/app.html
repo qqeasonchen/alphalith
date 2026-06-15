@@ -327,13 +327,17 @@ a { color:inherit; text-decoration:none; }
 .metric-sub { font-size:10px; color:var(--text-muted); margin-top:2px; }
 
 /* Debate cards */
-.debate-row { display:flex; gap:12px; margin-bottom:10px; }
-.debate-bull { flex:1; padding:12px; border-radius:8px; background:var(--bg-bull); border:1px solid rgba(16,185,129,0.2); }
+.debate-round { position:relative; padding-left:20px; }
+.debate-round::before { content:''; position:absolute; left:6px; top:28px; bottom:0; width:2px; background:linear-gradient(to bottom, var(--green), var(--red)); border-radius:1px; }
+.debate-row { display:flex; gap:12px; margin-bottom:10px; position:relative; }
+.debate-row::before { content:'⚔️'; position:absolute; left:-14px; top:50%; transform:translateY(-50%); font-size:10px; z-index:1; }
+.debate-bull { flex:1; padding:12px; border-radius:8px; background:var(--bg-bull); border:1px solid rgba(16,185,129,0.2); position:relative; }
+.debate-bull::after { content:'→'; position:absolute; right:-8px; top:50%; transform:translateY(-50%); color:var(--green); font-size:14px; font-weight:bold; opacity:0.4; }
 .debate-bull .debate-label { font-size:11px; font-weight:600; color:var(--green); margin-bottom:6px; }
-.debate-bull .debate-content { font-size:12px; line-height:1.5; color:var(--text-secondary); }
+.debate-bull .debate-content { font-size:12px; line-height:1.6; color:var(--text-secondary); }
 .debate-bear { flex:1; padding:12px; border-radius:8px; background:var(--bg-bear); border:1px solid rgba(239,68,68,0.2); }
 .debate-bear .debate-label { font-size:11px; font-weight:600; color:var(--red); margin-bottom:6px; }
-.debate-bear .debate-content { font-size:12px; line-height:1.5; color:var(--text-secondary); }
+.debate-bear .debate-content { font-size:12px; line-height:1.6; color:var(--text-secondary); }
 
 /* Chat Area */
 .chat-area {
@@ -1328,6 +1332,18 @@ async function apiGet(path) {
 // ============================================================
 function escHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// 格式化辩论文本：高亮 ⚡回击/回应 和 📌论点/质疑 标记
+function fmtDebate(text) {
+  var s = escHtml(text||'-');
+  // 换行 → <br>
+  s = s.replace(/\n/g, '<br>');
+  // 高亮回击/回应行
+  s = s.replace(/(⚡\s*[回击回应][^：:]*[：:][^<]*)/g, '<span style="color:#f59e0b;font-weight:600">$1</span>');
+  // 高亮论点行
+  s = s.replace(/(📌\s*[论质][点疑][^：:]*[：:][^<]*)/g, '<span style="color:#6366f1;font-weight:600">$1</span>');
+  return s;
+}
+
 function showProgress(boxId, pct, msg, log){
   const el=document.getElementById(boxId); if(!el) return;
   el.style.display='block';
@@ -1533,9 +1549,14 @@ function renderAnalyze(data) {
     </div>`).join('');
 
   const debates = (data.debate || []).map((d,i) => `
-    <div class="debate-row">
-      <div class="debate-bull"><div class="debate-label">🐂 多头研究员 (R${i+1})</div><div class="debate-content">${escHtml(d.bull||'-')}</div></div>
-      <div class="debate-bear"><div class="debate-label">🐻 空头研究员 (R${i+1})</div><div class="debate-content">${escHtml(d.bear||'-')}</div></div>
+    <div class="debate-round" style="margin-bottom:14px">
+      <div style="text-align:center;margin-bottom:8px;font-size:11px;color:var(--text-tertiary);font-weight:600">
+        ═══ 第 ${i+1} 轮辩论 ═══
+      </div>
+      <div class="debate-row">
+        <div class="debate-bull"><div class="debate-label">🐂 多头发言</div><div class="debate-content">${fmtDebate(d.bull||'-')}</div></div>
+        <div class="debate-bear"><div class="debate-label">🐻 空头发言</div><div class="debate-content">${fmtDebate(d.bear||'-')}</div></div>
+      </div>
     </div>`).join('');
 
   // Layer 1.5: Situation Summary
