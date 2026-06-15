@@ -759,6 +759,11 @@ class GuiHandler(BaseHTTPRequestHandler):
                         {"name": r.name, "stance": r.stance, "confidence": r.confidence, "summary": r.summary}
                         for r in decision.agent_reports
                     ] if decision.agent_reports else [],
+                    "situation_summary": {
+                        "snapshot_text": decision.situation_summary.snapshot_text,
+                        "key_drivers": decision.situation_summary.key_drivers,
+                        "uncertainties": decision.situation_summary.uncertainties,
+                    } if decision.situation_summary else None,
                     "debate": [
                         {"bull": d.bull, "bear": d.bear}
                         for d in decision.debate
@@ -782,6 +787,8 @@ class GuiHandler(BaseHTTPRequestHandler):
                             "aggressive_stance": r.aggressive_stance,
                             "conservative": r.conservative,
                             "conservative_stance": r.conservative_stance,
+                            "neutral": r.neutral,
+                            "neutral_stance": r.neutral_stance,
                             "final_verdict": r.final_verdict,
                         }
                         for r in (decision.risk_reviews or [])
@@ -807,7 +814,7 @@ class GuiHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/analyze/stream":
-            # SSE 流式分析 v0.4：6层12节点全流水线
+            # SSE 流式分析 v0.4.1：7层13节点全流水线
             try:
                 body = json.loads(self._read_body().decode("utf-8"))
                 symbol = body.get("symbol", "")
@@ -824,7 +831,7 @@ class GuiHandler(BaseHTTPRequestHandler):
             try:
                 from ..core import analyze_with_sse
 
-                self._sse_send("progress", {"stage": "init", "pct": 5, "msg": f"🔍 启动 6 层分析流水线: {symbol}..."})
+                self._sse_send("progress", {"stage": "init", "pct": 5, "msg": f"🔍 启动 7 层分析流水线: {symbol}..."})
 
                 for event in analyze_with_sse(symbol, depth=depth, persist=persist):
                     if event["type"] == "progress":
@@ -842,7 +849,7 @@ class GuiHandler(BaseHTTPRequestHandler):
                                 self._sse_send("analyst", a)
                     elif event["type"] == "result":
                         d = event["decision"]
-                        self._sse_send("progress", {"stage": "done", "pct": 100, "msg": "✅ 6 层分析完成"})
+                        self._sse_send("progress", {"stage": "done", "pct": 100, "msg": "✅ 7 层分析完成"})
                         self._sse_send("done", {
                             "id": d.id,
                             "symbol": d.symbol,
@@ -857,6 +864,11 @@ class GuiHandler(BaseHTTPRequestHandler):
                                 {"name": r.name, "stance": r.stance, "confidence": r.confidence, "summary": r.summary}
                                 for r in d.agent_reports
                             ] if d.agent_reports else [],
+                            "situation_summary": {
+                                "snapshot_text": d.situation_summary.snapshot_text,
+                                "key_drivers": d.situation_summary.key_drivers,
+                                "uncertainties": d.situation_summary.uncertainties,
+                            } if d.situation_summary else None,
                             "debate": [
                                 {"bull": deb.bull, "bear": deb.bear}
                                 for deb in (d.debate or [])
@@ -880,6 +892,8 @@ class GuiHandler(BaseHTTPRequestHandler):
                                     "aggressive_stance": r.aggressive_stance,
                                     "conservative": r.conservative,
                                     "conservative_stance": r.conservative_stance,
+                                    "neutral": r.neutral,
+                                    "neutral_stance": r.neutral_stance,
                                     "final_verdict": r.final_verdict,
                                 }
                                 for r in (d.risk_reviews or [])
