@@ -1,13 +1,14 @@
 """
-7-role 12-node analyst committee — Alphalith v0.4.0.
-7种角色、12个运行时节点：
+7-layer 13-node analyst committee — Alphalith v0.4.1.
+七层流水线、13 个运行时节点：
 
-  Layer I   (4 节点)  技术 / 基本面 / 新闻 / 情绪分析师
-  Layer II  (2 节点)  多头研究员 + 空头研究员（多轮辩论）
-  Layer III (1 节点)  研究经理 → 汇总辩论、输出平衡报告
-  Layer IV  (1 节点)  交易员 → 独立决策（买卖/仓位/时机）
-  Layer V   (2 节点)  激进风控 + 保守风控 → 双视角审议
-  Layer VI  (1 节点)  基金经理 → 最终审批/否决
+  Layer I    (4 节点)  技术 / 基本面 / 新闻 / 情绪分析师
+  Layer 1.5  (1 节点)  形势摘要 → 蒸馏 4 分析师报告为结构化快照
+  Layer II   (2 节点)  多头研究员 + 空头研究员（多轮辩论）
+  Layer III  (1 节点)  研究经理 → 汇总辩论、输出平衡报告
+  Layer IV   (1 节点)  交易员 → 独立决策（买卖/仓位/时机）
+  Layer V    (3 节点)  激进风控 + 保守风控 + 中立风控 → 三视角审议
+  Layer VI   (1 节点)  基金经理 → 最终审批/否决
 """
 from __future__ import annotations
 
@@ -16,7 +17,10 @@ import re
 
 from .data import MarketData
 from .llm import LLM
-from .schema import AgentReport, DebateRound, ManagerReport, TraderReport, RiskReview
+from .schema import (
+    AgentReport, DebateRound, SituationSummary,
+    ManagerReport, TraderReport, RiskReview,
+)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -140,6 +144,60 @@ def run_analysts(llm: LLM, md: MarketData) -> list[AgentReport]:
                 summary=f"调用失败({e.__class__.__name__})，已降级为中性。",
             ))
     return reports
+
+
+# ═══════════════════════════════════════════════════════════════
+# Layer 1.5 — 形势摘要（Situation Summariser）
+# ═══════════════════════════════════════════════════════════════
+
+_SUMMARISER_SYS = (
+    "你是形势摘要专家。你的任务是将 4 位分析师的独立报告蒸馏为一份 ≤400 token 的"
+    "结构化情势快照，只保留最关键的信息和分歧点。不要添加分析师未提及的任何新信息。"
+)
+
+_SUMMARISER_PROMPT = """【你的任务】将以下 4 位分析师报告蒸馏为一份简洁的结构化情势快照。
+
+【市场快照】
+{snapshot}
+
+【4 位分析师独立报告】
+{analyst_summary}
+
+请输出 JSON（不超过 400 tokens 总输出）：
+{{
+  "snapshot_text": "≤200字，将四位分析师的核心判断浓缩为一句话形势评估。必须明确标注多头/空头/中性立场分布",
+  "key_drivers": ["最关键的 2-3 个驱动因素，必须引用具体数字或新闻原文"],
+  "uncertainties": ["1-2 个分析师之间有分歧或不确定的领域"]
+}}"""
+
+
+def run_situation_summariser(
+    llm: LLM, md: MarketData, reports: list[AgentReport]
+) -> SituationSummary:
+    """Layer 1.5: 形势摘要 — 蒸馏 4 分析师报告为结构化快照。"""
+    snapshot = make_snapshot(md)
+    analyst_summary = "\n".join(
+        f"- {r.name} [{r.stance}, conf={r.confidence:.0%}]: {r.summary}" for r in reports
+    )
+    prompt = _SUMMARISER_PROMPT.format(snapshot=snapshot, analyst_summary=analyst_summary)
+    try:
+        reply = llm.chat(prompt, system=_SUMMARISER_SYS)
+        text = reply.strip()
+        l, r = text.find("{"), text.rfind("}")
+        if l >= 0 and r > l:
+            obj = _json.loads(text[l: r + 1])
+            return SituationSummary(
+                snapshot_text=str(obj.get("snapshot_text", reply[:200])),
+                key_drivers=[str(k) for k in obj.get("key_drivers", [])[:3]],
+                uncertainties=[str(u) for u in obj.get("uncertainties", [])[:2]],
+            )
+    except Exception:
+        pass
+    return SituationSummary(
+        snapshot_text=analyst_summary[:300],
+        key_drivers=["分析师数据不足，无法提炼关键驱动"],
+        uncertainties=["摘要降级：LLM 调用失败或 JSON 解析异常"],
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -326,7 +384,7 @@ def run_trader(
 
 
 # ═══════════════════════════════════════════════════════════════
-# Layer V — 双视角风控（激进 + 保守）
+# Layer V — 三视角风控（激进 + 保守 + 中立）
 # ═══════════════════════════════════════════════════════════════
 
 _AGGRESSIVE_RISK_SYS = (
@@ -337,6 +395,12 @@ _AGGRESSIVE_RISK_SYS = (
 _CONSERVATIVE_RISK_SYS = (
     "你是保守型风控官。你的首要目标是资产保全，宁可错过不可做错。"
     "你会严格审查仓位合理性、止损距离、流动性风险和黑天鹅可能。"
+)
+
+_NEUTRAL_RISK_SYS = (
+    "你是中立型风控官。你的任务是平衡激进与保守两个极端，找出最合理的中间路径。"
+    "你既不偏袒冒进也不过分保守，基于事实和数据给出公允的风险评估。"
+    "你会指出激进方的盲点和保守方的过度谨慎。"
 )
 
 _RISK_PROMPT = """【你的任务】审议交易员的决策。
@@ -363,7 +427,7 @@ _RISK_PROMPT = """【你的任务】审议交易员的决策。
 def run_risk_reviews(
     llm: LLM, md: MarketData, manager: ManagerReport, trader: TraderReport
 ) -> RiskReview:
-    """Layer V: 激进 + 保守风控双视角审议。"""
+    """Layer V: 激进 + 保守 + 中立风控三视角审议。"""
     snapshot = make_snapshot(md)
     risk_prompt = _RISK_PROMPT.format(
         snapshot=snapshot,
@@ -417,11 +481,34 @@ def run_risk_reviews(
     except Exception as e:
         con_text = f"保守风控调用失败({e.__class__.__name__})"
 
+    # Neutral
+    neu_text = ""
+    neu_stance = "approve"
+    try:
+        neu_reply = llm.chat(risk_prompt, system=_NEUTRAL_RISK_SYS)
+        try:
+            text = neu_reply.strip()
+            l, r = text.find("{"), text.rfind("}")
+            if l >= 0 and r > l:
+                obj = _json.loads(text[l: r + 1])
+                neu_text = str(obj.get("analysis", neu_reply[:200]))
+                v = str(obj.get("verdict", "approve")).lower()
+                if v in ("approve", "reject", "modify"):
+                    neu_stance = v
+                if v == "modify":
+                    neu_text += f" | 建议: {obj.get('modifications', '')}"
+        except Exception:
+            neu_text = neu_reply[:200]
+    except Exception as e:
+        neu_text = f"中立风控调用失败({e.__class__.__name__})"
+
     return RiskReview(
         aggressive=agg_text,
         aggressive_stance=agg_stance,  # type: ignore[arg-type]
         conservative=con_text,
         conservative_stance=con_stance,  # type: ignore[arg-type]
+        neutral=neu_text,
+        neutral_stance=neu_stance,  # type: ignore[arg-type]
     )
 
 
@@ -451,6 +538,7 @@ _FUND_MANAGER_PROMPT = """【你的任务】做出最终审批/否决决定。
 【风控审议】
 🟢 激进风控 [{agg_stance}]: {agg_text}
 🔴 保守风控 [{con_stance}]: {con_text}
+⚪ 中立风控 [{neu_stance}]: {neu_text}
 
 请输出 JSON：
 {{
@@ -480,6 +568,8 @@ def run_fund_manager(
         agg_text=risk.aggressive[:200],
         con_stance=risk.conservative_stance,
         con_text=risk.conservative[:200],
+        neu_stance=risk.neutral_stance,
+        neu_text=risk.neutral[:200],
     )
     try:
         reply = llm.chat(prompt, system=_FUND_MANAGER_SYS)
