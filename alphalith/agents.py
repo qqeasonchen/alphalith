@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json as _json
 import re
+from typing import Optional
 
 from .data import MarketData
 from .llm import LLM
@@ -21,6 +22,66 @@ from .schema import (
     AgentReport, DebateRound, SituationSummary,
     ManagerReport, TraderReport, RiskReview,
 )
+
+def _parse_json(text: str):
+    """健壮解析 LLM 返回中的 JSON。
+
+    依次尝试：
+    1. 整段直接解析
+    2. 去掉 markdown 代码块后解析
+    3. 栈匹配找完整 {} 子串后解析
+    返回 None 表示全部失败。
+    """
+    if not text:
+        return None
+    s = text.strip()
+
+    # 1. 直接解析
+    try:
+        return _json.loads(s)
+    except _json.JSONDecodeError:
+        pass
+
+    # 2. 去掉 markdown 代码块
+    cleaned = re.sub(r"```(?:json)?\s*([\s\S]*?)\s*```", r"\1", s, flags=re.DOTALL).strip()
+    try:
+        return _json.loads(cleaned)
+    except _json.JSONDecodeError:
+        pass
+
+    # 3. 栈匹配找第一个完整 {} 对象
+    start = s.find("{")
+    if start >= 0:
+        depth = 0
+        in_str = False
+        esc = False
+        for i, ch in enumerate(s[start:], start):
+            if esc:
+                esc = False
+                continue
+            if ch == "\\" and in_str:
+                esc = True
+                continue
+            if ch == '"' and not esc:
+                in_str = not in_str
+            if not in_str:
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            return _json.loads(s[start:i + 1])
+                        except _json.JSONDecodeError:
+                            # 回退到简单 l/r 查找
+                            end = s.rfind("}", start)
+                            if end > start:
+                                try:
+                                    return _json.loads(s[start:end + 1])
+                                except _json.JSONDecodeError:
+                                    pass
+                        break
+    return None
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -84,27 +145,25 @@ _FOCUS_KEYS = list(_FOCUS.keys())
 
 
 def _parse_analyst(reply: str, name: str) -> AgentReport:
-    """优先 JSON 解析，失败时降级到正则。"""
+    """优先 JSON 解析（健壮匹配），失败时降级到正则。"""
     stance = "neutral"
     conf = 0.6
     summary = reply.strip()
-    text = reply.strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        if text.lower().startswith("json"):
-            text = text[4:]
-    l, r = text.find("{"), text.rfind("}")
-    if l >= 0 and r > l:
+
+    # 优先用健壮 JSON 解析
+    obj = _parse_json(reply)
+    if obj is not None:
+        st = str(obj.get("stance", "")).lower()
+        if st in ("bullish", "bearish", "neutral"):
+            stance = st
         try:
-            obj = _json.loads(text[l: r + 1])
-            st = str(obj.get("stance", "")).lower()
-            if st in ("bullish", "bearish", "neutral"):
-                stance = st
             conf = max(0.0, min(1.0, float(obj.get("confidence", 0.6))))
-            summary = str(obj.get("summary", summary))[:200]
-            return AgentReport(name=name, stance=stance, confidence=conf, summary=summary)  # type: ignore[arg-type]
         except (ValueError, TypeError):
             pass
+        summary = str(obj.get("summary", summary))[:200]
+        return AgentReport(name=name, stance=stance, confidence=conf, summary=summary)  # type: ignore[arg-type]
+
+    # 降级：正则提取
     stance_map = {"看多": "bullish", "看空": "bearish", "中性": "neutral"}
     for k, v in stance_map.items():
         if k in reply:
@@ -182,10 +241,8 @@ def run_situation_summariser(
     prompt = _SUMMARISER_PROMPT.format(snapshot=snapshot, analyst_summary=analyst_summary)
     try:
         reply = llm.chat(prompt, system=_SUMMARISER_SYS)
-        text = reply.strip()
-        l, r = text.find("{"), text.rfind("}")
-        if l >= 0 and r > l:
-            obj = _json.loads(text[l: r + 1])
+        obj = _parse_json(reply)
+        if obj is not None:
             return SituationSummary(
                 snapshot_text=str(obj.get("snapshot_text", reply[:200])),
                 key_drivers=[str(k) for k in obj.get("key_drivers", [])[:3]],
@@ -302,22 +359,17 @@ def run_research_manager(
             stance="neutral", confidence=0.5,
         )
 
-    try:
-        text = reply.strip()
-        l, r = text.find("{"), text.rfind("}")
-        if l >= 0 and r > l:
-            obj = _json.loads(text[l: r + 1])
-            st = str(obj.get("stance", "neutral")).lower()
-            if st not in ("bullish", "bearish", "neutral"):
-                st = "neutral"
-            return ManagerReport(
-                summary=str(obj.get("summary", reply[:300])),
-                stance=st,  # type: ignore[arg-type]
-                confidence=max(0.0, min(1.0, float(obj.get("confidence", 0.5)))),
-                key_points=[str(k) for k in obj.get("key_points", [])[:5]],
-            )
-    except Exception:
-        pass
+    obj = _parse_json(reply)
+    if obj is not None:
+        st = str(obj.get("stance", "neutral")).lower()
+        if st not in ("bullish", "bearish", "neutral"):
+            st = "neutral"
+        return ManagerReport(
+            summary=str(obj.get("summary", reply[:300])),
+            stance=st,  # type: ignore[arg-type]
+            confidence=max(0.0, min(1.0, float(obj.get("confidence", 0.5)))),
+            key_points=[str(k) for k in obj.get("key_points", [])[:5]],
+        )
     return ManagerReport(summary=reply[:300], stance="neutral", confidence=0.5)
 
 
@@ -363,23 +415,18 @@ def run_trader(
             reasoning=f"交易员调用失败({e.__class__.__name__})",
         )
 
-    try:
-        text = reply.strip()
-        l, r = text.find("{"), text.rfind("}")
-        if l >= 0 and r > l:
-            obj = _json.loads(text[l: r + 1])
-            act = str(obj.get("action", "hold")).lower()
-            if act not in ("buy", "sell", "hold"):
-                act = "hold"
-            return TraderReport(
-                action=act,  # type: ignore[arg-type]
-                confidence=max(0.0, min(1.0, float(obj.get("confidence", 0.3)))),
-                position_pct=max(0.0, min(1.0, float(obj.get("position_pct", 0.0)))),
-                entry_strategy=str(obj.get("entry_strategy", "")),
-                reasoning=str(obj.get("reasoning", reply[:200])),
-            )
-    except Exception:
-        pass
+    obj = _parse_json(reply)
+    if obj is not None:
+        act = str(obj.get("action", "hold")).lower()
+        if act not in ("buy", "sell", "hold"):
+            act = "hold"
+        return TraderReport(
+            action=act,  # type: ignore[arg-type]
+            confidence=max(0.0, min(1.0, float(obj.get("confidence", 0.3)))),
+            position_pct=max(0.0, min(1.0, float(obj.get("position_pct", 0.0)))),
+            entry_strategy=str(obj.get("entry_strategy", "")),
+            reasoning=str(obj.get("reasoning", reply[:200])),
+        )
     return TraderReport(action="hold", confidence=0.0, reasoning=reply[:200])
 
 
@@ -440,22 +487,20 @@ def run_risk_reviews(
     )
 
     # Aggressive
+    # Aggressive
     agg_text = ""
     agg_stance = "approve"
     try:
         agg_reply = llm.chat(risk_prompt, system=_AGGRESSIVE_RISK_SYS)
-        try:
-            text = agg_reply.strip()
-            l, r = text.find("{"), text.rfind("}")
-            if l >= 0 and r > l:
-                obj = _json.loads(text[l: r + 1])
-                agg_text = str(obj.get("analysis", agg_reply[:200]))
-                v = str(obj.get("verdict", "approve")).lower()
-                if v in ("approve", "reject", "modify"):
-                    agg_stance = v
-                if v == "modify":
-                    agg_text += f" | 建议: {obj.get('modifications', '')}"
-        except Exception:
+        obj = _parse_json(agg_reply)
+        if obj is not None:
+            agg_text = str(obj.get("analysis", agg_reply[:200]))
+            v = str(obj.get("verdict", "approve")).lower()
+            if v in ("approve", "reject", "modify"):
+                agg_stance = v
+            if v == "modify":
+                agg_text += f" | 建议: {obj.get('modifications', '')}"
+        else:
             agg_text = agg_reply[:200]
     except Exception as e:
         agg_text = f"激进风控调用失败({e.__class__.__name__})"
@@ -465,18 +510,15 @@ def run_risk_reviews(
     con_stance = "approve"
     try:
         con_reply = llm.chat(risk_prompt, system=_CONSERVATIVE_RISK_SYS)
-        try:
-            text = con_reply.strip()
-            l, r = text.find("{"), text.rfind("}")
-            if l >= 0 and r > l:
-                obj = _json.loads(text[l: r + 1])
-                con_text = str(obj.get("analysis", con_reply[:200]))
-                v = str(obj.get("verdict", "approve")).lower()
-                if v in ("approve", "reject", "modify"):
-                    con_stance = v
-                if v == "modify":
-                    con_text += f" | 建议: {obj.get('modifications', '')}"
-        except Exception:
+        obj = _parse_json(con_reply)
+        if obj is not None:
+            con_text = str(obj.get("analysis", con_reply[:200]))
+            v = str(obj.get("verdict", "approve")).lower()
+            if v in ("approve", "reject", "modify"):
+                con_stance = v
+            if v == "modify":
+                con_text += f" | 建议: {obj.get('modifications', '')}"
+        else:
             con_text = con_reply[:200]
     except Exception as e:
         con_text = f"保守风控调用失败({e.__class__.__name__})"
@@ -486,18 +528,15 @@ def run_risk_reviews(
     neu_stance = "approve"
     try:
         neu_reply = llm.chat(risk_prompt, system=_NEUTRAL_RISK_SYS)
-        try:
-            text = neu_reply.strip()
-            l, r = text.find("{"), text.rfind("}")
-            if l >= 0 and r > l:
-                obj = _json.loads(text[l: r + 1])
-                neu_text = str(obj.get("analysis", neu_reply[:200]))
-                v = str(obj.get("verdict", "approve")).lower()
-                if v in ("approve", "reject", "modify"):
-                    neu_stance = v
-                if v == "modify":
-                    neu_text += f" | 建议: {obj.get('modifications', '')}"
-        except Exception:
+        obj = _parse_json(neu_reply)
+        if obj is not None:
+            neu_text = str(obj.get("analysis", neu_reply[:200]))
+            v = str(obj.get("verdict", "approve")).lower()
+            if v in ("approve", "reject", "modify"):
+                neu_stance = v
+            if v == "modify":
+                neu_text += f" | 建议: {obj.get('modifications', '')}"
+        else:
             neu_text = neu_reply[:200]
     except Exception as e:
         neu_text = f"中立风控调用失败({e.__class__.__name__})"
@@ -582,22 +621,17 @@ def run_fund_manager(
             "reasoning": f"基金经理调用失败({e.__class__.__name__})，降级保守处理。",
         }
 
-    try:
-        text = reply.strip()
-        l, r = text.find("{"), text.rfind("}")
-        if l >= 0 and r > l:
-            obj = _json.loads(text[l: r + 1])
-            act = str(obj.get("final_action", trader.action)).lower()
-            if act not in ("buy", "sell", "hold"):
-                act = "hold"
-            return {
-                "action": act,
-                "confidence": max(0.0, min(1.0, float(obj.get("final_confidence", 0.3)))),
-                "position_pct": max(0.0, min(1.0, float(obj.get("final_position_pct", 0.0)))),
-                "reasoning": str(obj.get("reasoning", reply[:200])),
-            }
-    except Exception:
-        pass
+    obj = _parse_json(reply)
+    if obj is not None:
+        act = str(obj.get("final_action", trader.action)).lower()
+        if act not in ("buy", "sell", "hold"):
+            act = "hold"
+        return {
+            "action": act,
+            "confidence": max(0.0, min(1.0, float(obj.get("final_confidence", 0.3)))),
+            "position_pct": max(0.0, min(1.0, float(obj.get("final_position_pct", 0.0)))),
+            "reasoning": str(obj.get("reasoning", reply[:200])),
+        }
 
     act = trader.action if trader.action != "buy" else "hold"
     return {"action": act, "confidence": 0.3, "position_pct": 0.0, "reasoning": reply[:200]}

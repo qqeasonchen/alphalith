@@ -42,21 +42,26 @@
 
 ---
 
-## 🏛 The Council
+## 🏛 The Council (7层·13节点)
 
 ```
-                ┌──────────────────────────┐
-                │  📜 Portfolio Manager     │  Final Seal
-                ├──────────────────────────┤
-                │  🛡 Risk Manager           │  Approve / Reject
-                ├──────────────────────────┤
-                │  💼 Trader                │  Sizing / Timing
-                ├──────────────────────────┤
-                │  🐂 Bull   ⚔   🐻 Bear   │  Structured Debate
-                ├──────────────────────────┤
-                │  📈 Tech │ 📊 Fund        │
-                │  📰 News │ 💬 Sentiment   │  4 Analysts (Parallel)
-                └──────────────────────────┘
+                ┌──────────────────────────────────┐
+                │  📜 Fund Manager                  │  Final Seal (Layer VI)
+                ├──────────────────────────────────┤
+                │  🛡 Risk Council (Aggressive /     │
+                │     Conservative / Neutral)        │  Triple Review (Layer V)
+                ├──────────────────────────────────┤
+                │  💼 Trader                        │  Sizing / Timing (Layer IV)
+                ├──────────────────────────────────┤
+                │  📋 Research Manager              │  Debate Summary (Layer III)
+                ├──────────────────────────────────┤
+                │  🐂 Bull   ⚔   🐻 Bear            │  Structured Debate (Layer II)
+                ├──────────────────────────────────┤
+                │  📊 Situation Summariser          │  Context Distillation (Layer 1.5)
+                ├──────────────────────────────────┤
+                │  📈 Tech │ 📊 Fund                │
+                │  📰 News │ 💬 Sentiment           │  4 Analysts Parallel (Layer I)
+                └──────────────────────────────────┘
 ```
 
 ---
@@ -132,9 +137,9 @@ Multi-stock monitoring dashboard: price cards, signal matrix, strategy heatmaps.
 
 | Depth | Time | Agents | Debate | Cost | Use Case |
 |---|---|---|---|---|---|
-| 🐇 `quick` | 30s–1m | Tech + News | None | <$0.005 | Daily monitoring |
-| 🦊 `standard` (default) | 2–3m | All 4 | 1 round | <$0.02 | Important decisions |
-| 🦅 `deep` | 5–8m | All 4 | 3 rounds + reflection | <$0.10 | Major investments |
+| 🐇 `quick` | 30s–1m | 4 Analysts + Summariser | None | <$0.005 | Daily monitoring |
+| 🦊 `standard` (default) | 2–3m | 7 layers · 13 nodes | 1 round | <$0.02 | Important decisions |
+| 🦅 `deep` | 5–8m | 7 layers · 13 nodes | 3 rounds + reflection | <$0.10 | Major investments |
 
 ---
 
@@ -142,25 +147,25 @@ Multi-stock monitoring dashboard: price cards, signal matrix, strategy heatmaps.
 
 Select Provider → Auto-fill API Base URL → Choose preset model or enter custom model ID — three steps, zero friction.
 
-| Provider | Latest Models | Release |
-|---|---|---|
-| 🔥 **DeepSeek** | V4 Pro · V4 Flash | 2026.04 |
-| ☁️ **Alibaba Qwen** | Qwen3.6 Max · Coder Plus · Omni | 2026.05 |
-| 🌐 **OpenAI** | GPT-5.5 · GPT-5.6 Preview · o4-mini | 2026.04 |
-| 🧠 **Anthropic Claude** | Opus 4.7 · Sonnet 4.6 | 2026.05 |
-| ⭐ **Google Gemini** | 3.5 Flash · 3.1 Pro | 2026.06 |
-| 🏛️ **Zhipu GLM** | GLM-5.2 · Flash | 2026.06.13 |
-| 🌙 **Kimi** | K2.7 Code · K2.6 | 2026.06.12 |
-| 🌋 **ByteDance Doubao** | Pro 256K · Lite 128K | 2026 |
-| 📘 **Baidu ERNIE** | ERNIE 4.5 · Speed | 2026 |
-| 💻 **Tencent Coding Plan** | Auto / GLM-5 / Kimi K2.5 / MiniMax M2.5 | 2026 |
-| 🎫 **Tencent Token Plan** | Auto / GLM-5.1 / Kimi K2.5 / MiniMax M2.7 | 2026 |
-| 🚀 **Tencent Hy Token Plan** | Hy3 Preview (295B MoE · 256K ctx) | 2026 |
-| 🎯 **MiniMax** | MiniMax-M1 | 2026 |
-| ⚡ **Stepfun** | Step 3.5 Flash | 2026 |
-| 🔗 **SiliconFlow** | DS V4 Pro / Qwen3.6 (CN proxy) | — |
+| Provider | Latest Models | Protocol | Release |
+|---|---|---|---|
+| 🔥 **DeepSeek** | V4 Pro · V4 Flash | OpenAI 兼容 | 2026.04 |
+| ☁️ **Alibaba Qwen** | Qwen3.6 Max · Coder Plus · Omni | OpenAI 兼容 | 2026.05 |
+| 🌐 **OpenAI** | GPT-5.5 · GPT-5.6 Preview · o4-mini | OpenAI 原生 | 2026.04 |
+| 🧠 **Anthropic Claude** | Opus 4.7 · Sonnet 4.6 | Anthropic 原生 | 2026.05 |
+| ⭐ **Google Gemini** | 3.5 Flash · 3.1 Pro | Gemini 原生 | 2026.06 |
+| 🏛️ **Zhipu GLM** | GLM-5.2 · Flash | OpenAI 兼容 | 2026.06.13 |
+| 🌙 **Kimi** | K2.7 Code · K2.6 | OpenAI 兼容 | 2026.06.12 |
+| 🌋💻 **火山方舟 Coding Plan** | DeepSeek V3/R1 · 豆包 Pro/Lite | OpenAI 兼容 | 2026 |
+| 🌋🎫 **火山方舟 Token Plan** | DeepSeek V3/R1 · 豆包 Pro/Lite | OpenAI 兼容 | 2026 |
+| 📘 **Baidu ERNIE** | ERNIE 4.5 · Speed | OpenAI 兼容 | 2026 |
+| 💻 **Tencent Coding Plan** | Auto / GLM-5 / Kimi K2.5 / MiniMax M2.5 | OpenAI 兼容 | 2026 |
+| 🎫 **Tencent Token Plan** | Auto / GLM-5.1 / Kimi K2.5 / MiniMax M2.7 | OpenAI 兼容 | 2026 |
+| 🎯 **MiniMax** | MiniMax-M1 | OpenAI 兼容 | 2026 |
+| ⚡ **Stepfun** | Step 3.5 Flash | OpenAI 兼容 | 2026 |
+| 🔗 **SiliconFlow** | DS V4 Pro / Qwen3.6 (CN proxy) | OpenAI 兼容 | — |
 
-> 💡 Overseas providers (OpenAI / Claude / Gemini) require a proxy or third-party relay. Tencent Coding/Token Plans offer fixed monthly pricing. Custom model ID input supported.
+> 💡 国内厂商（DeepSeek/百炼/千帆/智谱/Kimi/火山方舟/腾讯Coding/Token Plan/MiniMax/阶跃/硅基）均为 OpenAI 兼容协议，直接可用。海外厂商（OpenAI/Claude/Gemini）需代理或第三方中转。火山方舟 Coding Plan 侧重编程推理，Token Plan 按 token 计费。
 
 ---
 
@@ -170,11 +175,13 @@ Select Provider → Auto-fill API Base URL → Choose preset model or enter cust
 ┌────────────────────────────────────────────────────────────┐
 │  CLI · Web GUI · Python API · Telegram/Lark Bot            │
 ├────────────────────────────────────────────────────────────┤
-│            Alphalith Core (multi-agent council)            │
-│   Data Router → 4 Analysts → Debate → Risk → Decision      │
+│         Alphalith Core (7-layer 13-node pipeline)          │
+│   4 Analysts → Summariser → Debate → Manager → Trader →   │
+│              Triple Risk Review → Fund Manager              │
 ├────────────────────────────────────────────────────────────┤
 │  Data: Sina · Tencent · Eastmoney · AkShare · yfinance     │
-│  LLM:  DeepSeek · Qwen · Claude · Ollama (auto-fallback)   │
+│        + 雪球 · Reddit (sentiment)                          │
+│  LLM:  DeepSeek → Volcano → Stub (auto-fallback)           │
 │  Out:  JSON · Markdown · HTML · Webhook                    │
 └────────────────────────────────────────────────────────────┘
 ```
@@ -190,7 +197,7 @@ alphalith/
 │   ├── market.py        # 3-market detection + CN name resolver
 │   ├── data.py          # Quote / news / fundamentals provider
 │   ├── rules.py         # A/HK/US market rule engine
-│   ├── agents.py        # 4 analysts + bull/bear debate
+│   ├── agents.py        # 7-layer 13-node analysts + debate + risk + fund manager
 │   ├── llm.py           # Fallback chain + token counting
 │   ├── schema.py        # ADP v1.0 Decision dataclass
 │   ├── backtest.py      # Backtest engine (7 strategies + benchmark + risk metrics)
@@ -220,7 +227,8 @@ alphalith/
 - ✅ **v0.1** — CLI · 4 Agents · A-share rules · DeepSeek
 - ✅ **v0.2** — HK/US rules · Web GUI · Multi-LLM · Backtest
 - ✅ **v0.3** — Watchlist · Portfolio Tracker · Sentiment Analysis · Alerts · Custom Data Sources
-- 📋 **v0.4** — Cross-market `compare` · TradingView Webhook · Telegram/Lark Bot · Strategy Marketplace
+- ✅ **v0.4.1** — Situation Summariser + Neutral Risk Review (7层13节点) · Volcano Engine · 雪球/Reddit sentiment · Robust JSON parsing
+- 📋 **v0.5** — Cross-market `compare` · TradingView Webhook · Telegram/Lark Bot · Strategy Marketplace
 - 📋 **v1.0** — Live trading · Community strategies · Multi-language docs
 
 ---

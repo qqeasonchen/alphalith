@@ -167,8 +167,8 @@ DEFAULT_CONFIG = {
     "data_source": "auto",
     "data_source_order": ["sina", "eastmoney", "tencent", "akshare", "yfinance"],
     "custom_sources": {},
-    "sentiment_sources": ["googlenews", "yahoo", "finviz", "stocktwits", "eastmoney", "sina"],
-    "sentiment_source_order": ["googlenews", "yahoo", "eastmoney", "finviz", "stocktwits", "sina"],
+    "sentiment_sources": ["googlenews", "yahoo", "finviz", "stocktwits", "eastmoney", "sina", "xueqiu", "reddit"],
+    "sentiment_source_order": ["googlenews", "yahoo", "eastmoney", "finviz", "stocktwits", "sina", "xueqiu", "reddit"],
     "custom_sentiment_sources": {},
     "providers": {
         "deepseek": {
@@ -236,13 +236,28 @@ DEFAULT_CONFIG = {
                 {"id": "kimi-k2.6",            "name": "K2.6 · 旗舰",          "desc": "256K ctx 通用旗舰"},
             ],
         },
-        "volcengine": {
-            "name": "火山方舟 · 豆包",
+        "volcengine-coding": {
+            "name": "火山方舟 · Coding Plan",
             "base_url": "https://ark.cn-beijing.volces.com/api/v3",
-            "key_env": "ARK_API_KEY",
+            "key_env": "VOLCANO_API_KEY",
+            "protocol": "openai",
             "models": [
-                {"id": "doubao-pro-256k",      "name": "豆包 Pro 256K · 旗舰", "desc": "字节生态 · Coding Plan"},
-                {"id": "doubao-lite-128k",     "name": "豆包 Lite 128K · 轻量","desc": "高速低价 · Coding Plan"},
+                {"id": "deepseek-v3-250324",    "name": "DeepSeek V3 · 编程",     "desc": "DeepSeek V3 编程专精 · Coding Plan"},
+                {"id": "deepseek-r1-250528",    "name": "DeepSeek R1 · 推理",     "desc": "DeepSeek R1 推理模型 · Coding Plan"},
+                {"id": "doubao-pro-256k",      "name": "豆包 Pro 256K · 旗舰",   "desc": "字节豆包旗舰 · Coding Plan"},
+                {"id": "doubao-lite-128k",     "name": "豆包 Lite 128K · 轻量",  "desc": "高速低价 · Coding Plan"},
+            ],
+        },
+        "volcengine-token": {
+            "name": "火山方舟 · Token Plan",
+            "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+            "key_env": "VOLCANO_API_KEY",
+            "protocol": "openai",
+            "models": [
+                {"id": "deepseek-v3-250324",    "name": "DeepSeek V3 · 通用",     "desc": "DeepSeek V3 · Token Plan 按量计费"},
+                {"id": "deepseek-r1-250528",    "name": "DeepSeek R1 · 推理",     "desc": "DeepSeek R1 · Token Plan 按量计费"},
+                {"id": "doubao-pro-32k",        "name": "豆包 Pro 32K · 轻量",    "desc": "豆包轻量版 · Token Plan"},
+                {"id": "doubao-lite-32k",       "name": "豆包 Lite 32K · 高速",   "desc": "豆包高速版 · Token Plan"},
             ],
         },
         "qianfan": {

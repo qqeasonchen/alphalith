@@ -107,6 +107,7 @@ def _read_response(resp) -> bytes:
 
 
 def _try_deepseek() -> "LLM | None":
+    """OpenAI 兼容协议 — DeepSeek."""
     key = os.getenv("DEEPSEEK_API_KEY")
     if not key:
         return None
@@ -124,6 +125,7 @@ def _try_deepseek() -> "LLM | None":
     class _DS:
         name: str = "deepseek"
         usage: Usage = field(default_factory=Usage)
+        protocol: str = "openai"  # OpenAI 兼容
 
         def _call_once(self, prompt: str, system: str) -> tuple[str, dict]:
             msg = []
@@ -150,7 +152,6 @@ def _try_deepseek() -> "LLM | None":
                 try:
                     data = json.loads(text)
                 except (json.JSONDecodeError, ValueError):
-                    # 截断 JSON：尝试修复后解析
                     repaired = _parse_truncated_json(text)
                     if repaired is None:
                         raise
@@ -177,13 +178,12 @@ def _try_deepseek() -> "LLM | None":
                     last_err = e
                     if attempt < _MAX_RETRIES:
                         import time
-                        time.sleep(1.0 * (attempt + 1))  # 退避 1s / 2s
+                        time.sleep(1.0 * (attempt + 1))
                         continue
                 except (urllib.error.URLError, KeyError, ValueError, json.JSONDecodeError) as e:
                     last_err = e
                     break
                 except Exception as e:
-                    # catch-all 兜底：任何未预期的异常都不应传播到上层
                     last_err = e
                     break
 
@@ -194,9 +194,117 @@ def _try_deepseek() -> "LLM | None":
     return _DS()
 
 
+def _try_volcano() -> "LLM | None":
+    """OpenAI 兼容协议 — 火山引擎 / 火山方舟。
+
+    环境变量：
+      VOLCANO_API_KEY  — 火山引擎 API Key（必填）
+      VOLCANO_BASE_URL — 自定义 base URL（可选，默认 https://ark.cn-beijing.volces.com/api/v3）
+      VOLCANO_MODEL   — 模型端点 ID（可选，默认从环境变量读取；GUI 可覆盖）
+
+    「coding plan」指编程优化模型（如 DeepSeek Coder 端点），
+    「token plan」指按 token 计费的通用模型。
+    两者均为 OpenAI 兼容接口，只需更换 endpoint ID 即可切换。
+    """
+    key = os.getenv("VOLCANO_API_KEY")
+    if not key:
+        return None
+
+    base_url = os.getenv("VOLCANO_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3").rstrip("/")
+    model = os.getenv("VOLCANO_MODEL", "")
+    # 如果 GUI 存了自定义 model 则用；否则用环境变量
+    # （GUI 配置通过文件持久化，运行时注入环境变量）
+
+    import json
+    import urllib.request
+    import urllib.error
+    from http.client import IncompleteRead, RemoteDisconnected
+
+    _RETRYABLE = (IncompleteRead, RemoteDisconnected, ConnectionResetError, TimeoutError)
+    _MAX_RETRIES = 1
+
+    @dataclass
+    class _Volcano:
+        name: str = "volcano"
+        usage: Usage = field(default_factory=Usage)
+        protocol: str = "openai"  # OpenAI 兼容
+
+        def _call_once(self, prompt: str, system: str, model_name: str) -> tuple[str, dict]:
+            msg = []
+            if system:
+                msg.append({"role": "system", "content": system})
+            msg.append({"role": "user", "content": prompt})
+            body = json.dumps({
+                "model": model_name or "deepseek-v3-0324",  # 默认模型
+                "messages": msg,
+                "temperature": 0.0,
+            }).encode("utf-8")
+            url = f"{base_url}/chat/completions"
+            req = urllib.request.Request(
+                url,
+                data=body,
+                headers={
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                raw = _read_response(resp)
+                text = raw.decode("utf-8")
+                try:
+                    data = json.loads(text)
+                except (json.JSONDecodeError, ValueError):
+                    repaired = _parse_truncated_json(text)
+                    if repaired is None:
+                        raise
+                    data = repaired
+            content = data["choices"][0]["message"]["content"] or ""
+            u = data.get("usage") or {}
+            return content, u
+
+        def chat(self, prompt: str, system: str = "") -> str:
+            last_err = None
+            model_name = model or "deepseek-v3-0324"
+            for attempt in range(_MAX_RETRIES + 1):
+                try:
+                    content, u = self._call_once(prompt, system, model_name)
+                    self.usage.calls += 1
+                    if "prompt_tokens" in u:
+                        self.usage.prompt_tokens += int(u.get("prompt_tokens", 0))
+                        self.usage.completion_tokens += int(u.get("completion_tokens", 0))
+                    else:
+                        self.usage.prompt_tokens += _estimate_tokens(system) + _estimate_tokens(prompt)
+                        self.usage.completion_tokens += _estimate_tokens(content)
+                        self.usage.estimated = True
+                    return content
+                except _RETRYABLE as e:
+                    last_err = e
+                    if attempt < _MAX_RETRIES:
+                        import time
+                        time.sleep(1.0 * (attempt + 1))
+                        continue
+                except (urllib.error.URLError, KeyError, ValueError, json.JSONDecodeError) as e:
+                    last_err = e
+                    break
+                except Exception as e:
+                    last_err = e
+                    break
+
+            self.usage.calls += 1
+            err_name = last_err.__class__.__name__ if last_err else "Unknown"
+            return f"立场：中性\n置信度：0.5\n摘要：LLM 调用失败({err_name})，已降级。"
+
+    return _Volcano()
+
+
 def get_llm() -> "LLM":
-    """按降级链选择 LLM；最终兜底 StubLLM 一定能跑。"""
-    for factory in [_try_deepseek]:
+    """按降级链选择 LLM；最终兜底 StubLLM 一定能跑。
+
+    降级链：DeepSeek (OpenAI 兼容) → 火山引擎 (OpenAI 兼容) → Stub。
+    可通过环境变量选择提供商；GUI 设置页可配置优先级。
+    """
+    for factory in [_try_deepseek, _try_volcano]:
         llm = factory()
         if llm is not None:
             return llm  # type: ignore[return-value]
