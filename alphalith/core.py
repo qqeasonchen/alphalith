@@ -138,6 +138,7 @@ def analyze(
 
     # ── 将经理理由写入 RiskReview ──
     risk.final_verdict = reasoning
+    risk.fund_manager_full = fm.get("full_text", "")
 
     # ── 仓位与价格 ──
     entry = md.quote.price
@@ -328,6 +329,7 @@ def analyze_with_sse(
            "message": f"✓ 基金经理裁定: {fm['action']}"}
 
     risk.final_verdict = fm["reasoning"]
+    risk.fund_manager_full = fm.get("full_text", "")
 
     # Build final decision
     action = fm["action"]

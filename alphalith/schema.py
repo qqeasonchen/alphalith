@@ -28,6 +28,7 @@ class AgentReport:
     stance: Literal["bullish", "bearish", "neutral"]
     confidence: float
     summary: str
+    full_text: str = ""  # 完整 Markdown 报告原文（TradingAgents 风格）
 
     def __post_init__(self) -> None:
         self.confidence = _clamp01(self.confidence)
@@ -54,6 +55,7 @@ class ManagerReport:
     stance: Literal["bullish", "bearish", "neutral"] = "neutral"
     confidence: float = 0.5
     key_points: list[str] = field(default_factory=list)
+    full_text: str = ""  # 完整 Markdown 报告原文
 
 
 @dataclass
@@ -64,6 +66,7 @@ class TraderReport:
     position_pct: float = 0.0       # 仓位百分比
     entry_strategy: str = ""        # 入场策略
     reasoning: str = ""
+    full_text: str = ""  # 完整交易计划原文
 
 
 @dataclass
@@ -76,6 +79,11 @@ class RiskReview:
     neutral: str = ""
     neutral_stance: Literal["approve", "reject", "modify"] = "approve"
     final_verdict: str = ""         # 基金经理最终判定
+    # 完整报告原文（TradingAgents 风格）
+    aggressive_full: str = ""
+    conservative_full: str = ""
+    neutral_full: str = ""
+    fund_manager_full: str = ""     # 基金经理完整裁决
 
 
 @dataclass

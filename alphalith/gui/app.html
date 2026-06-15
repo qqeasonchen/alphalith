@@ -442,6 +442,87 @@ a { color:inherit; text-decoration:none; }
 }
 .toggle-switch.on::after { left:18px; }
 
+/* ====== REPORT DOCUMENT (TradingAgents-style) ====== */
+.report-document {
+  max-width: 900px; margin: 0 auto;
+}
+.report-section {
+  margin-bottom: 36px; padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-light);
+}
+.report-section:last-child { border-bottom: none; }
+.report-h1 {
+  font-size: 20px; font-weight: 700; color: var(--text-primary);
+  margin: 0 0 18px 0; padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent-primary);
+}
+.report-h2 {
+  font-size: 16px; font-weight: 600; color: var(--text-primary);
+  margin: 16px 0 10px 0;
+}
+.report-h3 {
+  font-size: 14px; font-weight: 600; color: var(--text-secondary);
+  margin: 12px 0 8px 0;
+}
+.report-agent {
+  margin-bottom: 20px; padding: 16px;
+  background: var(--bg-elevated); border-radius: 8px;
+  border: 1px solid var(--border-light);
+}
+.report-debate {
+  margin-bottom: 14px; padding: 14px;
+  background: var(--bg-elevated); border-radius: 8px;
+  border-left: 3px solid var(--accent-primary);
+}
+.report-markdown {
+  font-size: 13px; line-height: 1.8; color: var(--text-secondary);
+}
+.report-markdown h2,.report-markdown h3,.report-markdown h4,.report-markdown h5 {
+  color: var(--text-primary); margin-top: 16px; margin-bottom: 8px;
+}
+.report-markdown h2 { font-size: 17px; }
+.report-markdown h3 { font-size: 15px; }
+.report-markdown h4 { font-size: 14px; }
+.report-markdown h5 { font-size: 13px; }
+.report-markdown table {
+  width: 100%; border-collapse: collapse; margin: 12px 0;
+  font-size: 12px;
+}
+.report-markdown table td {
+  border: 1px solid var(--border-light); padding: 6px 10px;
+  white-space: nowrap;
+}
+.report-markdown table td:first-child {
+  font-weight: 600; white-space: nowrap;
+}
+.report-markdown hr {
+  border: none; border-top: 1px solid var(--border-light); margin: 16px 0;
+}
+.report-markdown strong { color: var(--text-primary); }
+.report-markdown code {
+  background: var(--code-bg); padding: 1px 5px; border-radius: 3px;
+  font-size: 12px;
+}
+.report-markdown li { margin-left: 20px; }
+.report-markdown p { margin-bottom: 10px; }
+.report-empty {
+  color: var(--text-tertiary); font-style: italic; padding: 12px;
+}
+.report-meta {
+  padding: 8px 12px; font-size: 11px; color: var(--text-tertiary);
+  background: var(--bg-elevated); border-radius: 6px; margin-bottom: 16px;
+}
+.report-warnings {
+  padding: 10px 14px; font-size: 12px; color: var(--amber);
+  background: rgba(249,168,37,0.08); border-left: 3px solid var(--amber);
+  border-radius: 6px; margin-bottom: 16px; line-height: 1.8;
+}
+.report-footer {
+  text-align: center; padding: 20px 0; font-size: 12px;
+  color: var(--text-tertiary); margin-top: 20px;
+}
+/* End REPORT DOCUMENT */
+
 /* ====== ANIMATIONS ====== */
 @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 .fade-in { animation:fadeIn .35s ease-out; }
@@ -1332,6 +1413,41 @@ async function apiGet(path) {
 // ============================================================
 function escHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// Markdown → HTML 转换（用于报告文档渲染）
+function mdToHtml(md) {
+  if (!md) return '';
+  var h = escHtml(md);
+  h = h.replace(/^#### (.+)$/gm, '<h5>$1</h5>');
+  h = h.replace(/^### (.+)$/gm, '<h4>$1</h4>');
+  h = h.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+  h = h.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+  h = h.replace(/^---$/gm, '<hr>');
+  // Tables
+  var lines = h.split('\n'), out = [], inTbl = false;
+  for (var i = 0; i < lines.length; i++) {
+    var ln = lines[i].trim();
+    if (/^\|.+\|$/.test(ln)) {
+      if (!inTbl) { out.push('<table>'); inTbl = true; }
+      if (/^\|[-:\s|]+\|$/.test(ln)) continue;
+      var cells = ln.split('|').filter(function(c){return c.trim();});
+      out.push('<tr>'+cells.map(function(c){return '<td>'+c.trim()+'</td>';}).join('')+'</tr>');
+    } else {
+      if (inTbl) { out.push('</table>'); inTbl = false; }
+      out.push(ln);
+    }
+  }
+  if (inTbl) out.push('</table>');
+  h = out.join('\n');
+  h = h.replace(/^- (.+)$/gm, '<li>$1</li>');
+  h = h.replace(/\n\n/g, '</p><p>');
+  h = '<p>'+h+'</p>';
+  h = h.replace(/<p>\s*<\/p>/g, '');
+  return h;
+}
+
 // 格式化辩论文本：高亮 ⚡回击/回应 和 📌论点/质疑 标记
 function fmtDebate(text) {
   var s = escHtml(text||'-');
@@ -1539,166 +1655,146 @@ function renderAnalyzeBatch(results) {
 }
 
 function renderAnalyze(data) {
-  const reports = (data.agent_reports || []).map(r => `
-    <div class="card" style="margin-bottom:10px">
-      <div class="card-header">
-        <h3>${escHtml(r.name)}</h3>
-        <span class="tag tag-${r.stance==='bullish'?'green':r.stance==='bearish'?'red':'amber'}">${escHtml(r.stance)}</span>
-      </div>
-      <div class="card-body">${escHtml(r.summary||'-')}</div>
-    </div>`).join('');
+  // Save ADP for export
+  window.__lastAdp = data.adp || data;
+  window.__lastSymbol = data.symbol || '';
 
-  const debates = (data.debate || []).map((d,i) => `
-    <div class="debate-round" style="margin-bottom:14px">
-      <div style="text-align:center;margin-bottom:8px;font-size:11px;color:var(--text-tertiary);font-weight:600">
-        ═══ 第 ${i+1} 轮辩论 ═══
-      </div>
-      <div class="debate-row">
-        <div class="debate-bull"><div class="debate-label">🐂 多头发言</div><div class="debate-content">${fmtDebate(d.bull||'-')}</div></div>
-        <div class="debate-bear"><div class="debate-label">🐻 空头发言</div><div class="debate-content">${fmtDebate(d.bear||'-')}</div></div>
-      </div>
-    </div>`).join('');
+  const sections = [];
 
-  // Layer 1.5: Situation Summary
-  const sit = data.situation_summary || {};
-  const situationHtml = sit.snapshot_text ? `
-    <div class="card" style="margin-bottom:14px;border-left:3px solid var(--amber)">
-      <div class="card-header">
-        <h3>📋 Layer 1.5 · 形势快照</h3>
-        <span style="font-size:11px;color:var(--text-tertiary)">Situation Summariser</span>
-      </div>
-      <div class="card-body">
-        <p style="margin-bottom:8px;line-height:1.7">${escHtml(sit.snapshot_text||'-')}</p>
-        ${(sit.key_drivers||[]).length?`<div style="margin-bottom:6px"><strong>关键驱动：</strong>${sit.key_drivers.map(k=>'• '+escHtml(k)).join(' ')}</div>`:''}
-        ${(sit.uncertainties||[]).length?`<div style="color:var(--amber);font-size:12px"><strong>分析师分歧：</strong>${sit.uncertainties.map(u=>escHtml(u)).join('；')}</div>`:''}
-      </div>
-    </div>` : '';
+  // ====== I. Analyst Team Reports ======
+  const reports = data.agent_reports || [];
+  if (reports.length) {
+    let html = '<div class="report-section" id="sec-analysts">';
+    html += '<h2 class="report-h1">I. Analyst Team Reports</h2>';
+    reports.forEach((r, i) => {
+      const stanceEmoji = {'bullish':'🟢','bearish':'🔴','neutral':'⚪'}[r.stance]||'⚪';
+      const fullText = r.full_text || '';
+      html += `<div class="report-agent"><h3 class="report-h2">${i+1}. ${escHtml(r.name)} ${stanceEmoji} (${r.stance.toUpperCase()} · ${(r.confidence*100).toFixed(0)}%)</h3>`;
+      if (fullText) {
+        html += `<div class="report-markdown">${mdToHtml(fullText)}</div>`;
+      } else {
+        html += `<p>${escHtml(r.summary||'-')}</p>`;
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    sections.push(html);
+  }
 
-  // Layer III: Research Manager
+  // ====== II. Research Team Decision ======
+  let researchHtml = '<div class="report-section" id="sec-research">';
+  researchHtml += '<h2 class="report-h1">II. Research Team Decision</h2>';
+
+  // Bull Researcher
+  const debates = data.debate || [];
+  if (debates.length) {
+    researchHtml += '<h3 class="report-h2">Bull Researcher</h3>';
+    debates.forEach((d,i) => {
+      researchHtml += `<div class="report-debate"><h4 class="report-h3">Round ${i+1}</h4>${mdToHtml(d.bull||'')}</div>`;
+    });
+
+    researchHtml += '<h3 class="report-h2">Bear Researcher</h3>';
+    debates.forEach((d,i) => {
+      researchHtml += `<div class="report-debate"><h4 class="report-h3">Round ${i+1}</h4>${mdToHtml(d.bear||'')}</div>`;
+    });
+  } else {
+    researchHtml += '<p class="report-empty">(No debate rounds)</p>';
+  }
+
+  // Research Manager
   const mgr = data.manager_report || {};
-  const managerHtml = mgr.summary ? `
-    <div class="card" style="margin-bottom:14px;border-left:3px solid var(--blue)">
-      <div class="card-header">
-        <h3>📋 研究经理汇总</h3>
-        <span class="tag tag-${mgr.stance==='bullish'?'green':mgr.stance==='bearish'?'red':'amber'}">${escHtml(mgr.stance||'neutral')}</span>
-      </div>
-      <div class="card-body">
-        <p style="margin-bottom:6px;line-height:1.7">${escHtml(mgr.summary||'-')}</p>
-        ${(mgr.key_points||[]).length?`<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)">${mgr.key_points.map(k=>'• '+escHtml(k)).join('<br>')}</div>`:''}
-      </div>
-    </div>` : '';
+  researchHtml += '<h3 class="report-h2">Research Manager</h3>';
+  if (mgr.full_text) {
+    researchHtml += `<div class="report-markdown">${mdToHtml(mgr.full_text)}</div>`;
+  } else {
+    researchHtml += `<p><strong>${(mgr.stance||'neutral').toUpperCase()}</strong> · ${escHtml(mgr.summary||'-')}</p>`;
+  }
+  researchHtml += '</div>';
+  sections.push(researchHtml);
 
-  // Layer IV: Trader
+  // ====== III. Trading Team Plan ======
   const tr = data.trader_report || {};
-  const traderHtml = tr.action ? `
-    <div class="card" style="margin-bottom:14px;border-left:3px solid var(--amber)">
-      <div class="card-header">
-        <h3>💼 交易员决策</h3>
-        <span class="tag tag-${tr.action==='buy'?'green':tr.action==='sell'?'red':'amber'}">${escHtml(tr.action)} · ${(tr.position_pct*100||0).toFixed(0)}%仓</span>
-      </div>
-      <div class="card-body">
-        <p style="margin-bottom:4px"><strong>入场策略：</strong>${escHtml(tr.entry_strategy||'无')}</p>
-        <p style="color:var(--text-secondary);line-height:1.7">${escHtml(tr.reasoning||'-')}</p>
-      </div>
-    </div>` : '';
+  let tradeHtml = '<div class="report-section" id="sec-trader">';
+  tradeHtml += '<h2 class="report-h1">III. Trading Team Plan</h2>';
+  tradeHtml += '<h3 class="report-h2">Trader</h3>';
+  if (tr.full_text) {
+    tradeHtml += `<div class="report-markdown">${mdToHtml(tr.full_text)}</div>`;
+  } else {
+    tradeHtml += `<p><strong>FINAL PROPOSAL: ${(tr.action||'hold').toUpperCase()}</strong></p>`;
+    tradeHtml += `<p>${escHtml(tr.reasoning||'')}</p>`;
+  }
+  tradeHtml += '</div>';
+  sections.push(tradeHtml);
 
-  // Layer V: Triple Risk Reviews
+  // ====== IV. Risk Management ======
   const risks = data.risk_reviews || [];
-  const riskHtml = risks.length ? risks.map(r => `
-    <div class="card" style="margin-bottom:10px;border-left:3px solid ${r.aggressive_stance==='reject'?'var(--red)':r.aggressive_stance==='modify'?'var(--amber)':'var(--green)'}">
-      <div class="card-header">
-        <h3>🟢 激进风控</h3>
-        <span class="tag tag-${r.aggressive_stance==='reject'?'red':r.aggressive_stance==='modify'?'amber':'green'}">${escHtml(r.aggressive_stance)}</span>
-      </div>
-      <div class="card-body" style="font-size:13px;line-height:1.6">${escHtml(r.aggressive||'-')}</div>
-    </div>
-    <div class="card" style="margin-bottom:10px;border-left:3px solid ${r.conservative_stance==='reject'?'var(--red)':r.conservative_stance==='modify'?'var(--amber)':'var(--green)'}">
-      <div class="card-header">
-        <h3>🔴 保守风控</h3>
-        <span class="tag tag-${r.conservative_stance==='reject'?'red':r.conservative_stance==='modify'?'amber':'green'}">${escHtml(r.conservative_stance)}</span>
-      </div>
-      <div class="card-body" style="font-size:13px;line-height:1.6">${escHtml(r.conservative||'-')}</div>
-    </div>
-    ${r.neutral?`
-    <div class="card" style="margin-bottom:10px;border-left:3px solid ${r.neutral_stance==='reject'?'var(--red)':r.neutral_stance==='modify'?'var(--amber)':'var(--green)'}">
-      <div class="card-header">
-        <h3>⚪ 中立风控</h3>
-        <span class="tag tag-${r.neutral_stance==='reject'?'red':r.neutral_stance==='modify'?'amber':'green'}">${escHtml(r.neutral_stance)}</span>
-      </div>
-      <div class="card-body" style="font-size:13px;line-height:1.6">${escHtml(r.neutral||'-')}</div>
-    </div>`:''}`).join('') : '';
+  if (risks.length) {
+    const r = risks[0];
+    let riskHtml = '<div class="report-section" id="sec-risk">';
+    riskHtml += '<h2 class="report-h1">IV. Risk Management Team Decision</h2>';
 
-  // Layer VI final verdict
-  const finalVerdict = risks.length && risks[0].final_verdict ? risks[0].final_verdict : (data.reasoning || '');
+    const riskStyles = [
+      {key:'aggressive', full:'aggressive_full', label:'Aggressive Risk Analyst', icon:'🟢', stance:r.aggressive_stance||'approve'},
+      {key:'conservative', full:'conservative_full', label:'Conservative Risk Analyst', icon:'🔴', stance:r.conservative_stance||'approve'},
+      {key:'neutral', full:'neutral_full', label:'Neutral Risk Analyst', icon:'⚪', stance:r.neutral_stance||'approve'},
+    ];
+    riskStyles.forEach(rs => {
+      const ft = r[rs.full] || '';
+      const txt = r[rs.key] || '';
+      riskHtml += `<h3 class="report-h2">${rs.icon} ${rs.label} [${rs.stance}]</h3>`;
+      riskHtml += `<div class="report-markdown">${ft ? mdToHtml(ft) : escHtml(txt)}</div>`;
+    });
+    riskHtml += '</div>';
+    sections.push(riskHtml);
+  }
 
+  // ====== V. Portfolio Manager ======
+  const fmFull = risks.length ? (risks[0].fund_manager_full || '') : '';
+  let fmHtml = '<div class="report-section" id="sec-pm">';
+  fmHtml += '<h2 class="report-h1">V. Portfolio Manager Decision</h2>';
+  fmHtml += '<h3 class="report-h2">Portfolio Manager</h3>';
+  if (fmFull) {
+    fmHtml += `<div class="report-markdown">${mdToHtml(fmFull)}</div>`;
+  } else {
+    const actionLabel = {'buy':'买入','sell':'卖出','hold':'持有'}[data.action]||data.action;
+    fmHtml += `<p><strong>最终决策：${actionLabel}</strong> | 置信度：${(data.confidence||0).toFixed(2)}</p>`;
+    fmHtml += `<p>${escHtml(data.reasoning||'')}</p>`;
+  }
+  fmHtml += '</div>';
+  sections.push(fmHtml);
+
+  // ====== Fees & Meta ======
   const fees = data.fees || {};
+  const cur = {'CNY':'¥','HKD':'HK$','USD':'$'}[data.currency]||'';
   const isBull = data.action && data.action.includes('buy');
   const extra = data.extra || {};
   const warnings = data.market_warnings || [];
 
-  const warningHtml = warnings.length ? `
-    <div class="card" style="margin-bottom:14px;border-left:3px solid var(--amber)">
-      <div class="card-header"><h3>⚠️ 市场规则提示</h3><span style="font-size:11px;color:var(--text-tertiary)">${data.market||'-'} · ${data.currency||''}</span></div>
-      <div class="card-body" style="color:var(--amber);font-size:13px;line-height:1.8">
-        ${warnings.map(w=>'• '+escHtml(w)).join('<br>')}
-      </div>
-    </div>` : '';
+  // Stats bar
+  const statsHtml = `<div class="stats-grid" style="margin-bottom:20px">
+    <div class="stat-card"><div class="stat-title">最终操作</div><div class="stat-value" style="color:${isBull?'var(--green)':'var(--red)'}">${escHtml(data.action||'hold')}</div></div>
+    <div class="stat-card"><div class="stat-title">置信度</div><div class="stat-value">${(data.confidence||0).toFixed(2)}</div></div>
+    <div class="stat-card"><div class="stat-title">入场价</div><div class="stat-value">${data.entry_price||'-'}</div></div>
+    <div class="stat-card"><div class="stat-title">止损/止盈</div><div class="stat-value" style="font-size:18px">${data.stop_loss||'-'}/${data.take_profit||'-'}</div></div>
+  </div>`;
 
-  const tokenStr = extra.llm_total_tokens
-    ? ` · ${extra.llm}: ${extra.llm_total_tokens} tokens (in ${extra.llm_prompt_tokens||0} / out ${extra.llm_completion_tokens||0})${extra.llm_tokens_estimated?' [估算]':''} · ${extra.llm_calls||0} 次调用`
-    : '';
+  const feesHtml = fees.total ? `<div class="report-meta">
+    <strong>费用:</strong> ${cur}${fees.total} (佣金${fees.commission||0} · 印花${fees.stamp_tax||0} · 过户${fees.transfer_fee||0}) · 保本 +${fees.breakeven_pct||0}%
+    ${extra.llm?' · LLM: '+extra.llm+' · '+extra.llm_calls+' calls · '+extra.llm_total_tokens+' tokens':''}
+  </div>` : '';
 
-  // 把 adp 暂存到 window 供导出
-  window.__lastAdp = data.adp || data;
-  window.__lastSymbol = data.symbol || '';
+  const warnHtml = warnings.length ? `<div class="report-warnings">${warnings.map(w=>'⚠ '+escHtml(w)).join('<br>')}</div>` : '';
 
   document.querySelector('#researchResult').innerHTML = `
-    ${warningHtml}
-    <div class="stats-grid" style="margin-bottom:16px">
-      <div class="stat-card">
-        <div class="stat-title">最终操作</div>
-        <div class="stat-value" style="color:${isBull?'var(--green)':'var(--red)'}">${escHtml(data.action||'-')}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">置信度</div>
-        <div class="stat-value">${(data.confidence||0).toFixed(2)}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">入场价</div>
-        <div class="stat-value">${data.entry_price||'-'}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">止损 / 止盈</div>
-        <div class="stat-value" style="font-size:18px">${data.stop_loss||'-'} / ${data.take_profit||'-'}</div>
-      </div>
+    ${statsHtml}
+    ${warnHtml}
+    ${feesHtml}
+    <div class="report-document">
+      ${sections.join('\n')}
     </div>
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><h3>👥 Layer I · 四分析师报告</h3></div>
-      ${reports||'<div class="card-body" style="color:var(--text-tertiary)">暂无报告</div>'}
-    </div>
-    ${debates?`
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><h3>⚔️ Layer II · 多空辩论</h3></div>
-      <div class="card-body">${debates}</div>
-    </div>`:''}
-    ${situationHtml}
-    ${managerHtml}
-    ${traderHtml}
-    ${riskHtml?`
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><h3>🛡️ Layer V · 三视角风控审议</h3></div>
-      <div class="card-body">${riskHtml}</div>
-    </div>`:''}
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><h3>🏛️ Layer VI · 基金经理最终裁定</h3></div>
-      <div class="card-body">
-        <p style="margin-bottom:8px"><strong>最终操作：</strong>${escHtml(data.action||'-')}</p>
-        <p style="color:var(--text-secondary);line-height:1.7">${escHtml(finalVerdict||'-')}</p>
-        ${fees.total?`<p style="margin-top:10px;font-size:12px;color:var(--text-tertiary)">
-          手续费: ${data.currency||'¥'}${fees.total} (佣金 ${fees.commission||0} · 印花税 ${fees.stamp_tax||0} · 过户费 ${fees.transfer_fee||0} · SEC ${fees.sec_fee||0} · 其他 ${fees.other||0}) · 保本涨幅: ${fees.breakeven_pct}%${tokenStr}</p>`:''}
-      </div>
-    </div>
+    <div class="report-footer">📜 决策已封存于立石（Sealed in the Bedrock） · Alphalith v0.4.1</div>
   `;
+}
 }
 
 function exportAdp() {
