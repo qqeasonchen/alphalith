@@ -686,7 +686,7 @@ a { color:inherit; text-decoration:none; }
           <div class="user-status" id="userStatus">● 请先登录</div>
         </div>
       </div>
-      <div class="version">Alphalith v0.4.0 · 7角色12节点 AI 投研引擎</div>
+      <div class="version">Alphalith v0.4.1 · 7层13节点 AI 投研引擎</div>
     </div>
   </aside>
 
@@ -716,7 +716,7 @@ a { color:inherit; text-decoration:none; }
 <div class="page-view active fade-in" id="page-research">
   <div class="page-header">
     <h2>🔍 投研分析</h2>
-    <p>多智能体 ADP 分析管道：四分析师 → 多空辩论 → 风险评审 → 投资决策。支持单标的或多标的批量（空格 / 逗号分隔）。</p>
+    <p>多智能体 ADP 分析管道：四分析师 → 形势快照 → 多空辩论 → 风险评审 → 投资决策。支持单标的或多标的批量（空格 / 逗号分隔）。</p>
   </div>
   <div class="action-bar" style="flex-wrap:wrap">
     <label>标的</label>
@@ -1531,6 +1531,21 @@ function renderAnalyze(data) {
       <div class="debate-bear"><div class="debate-label">🐻 空头研究员 (R${i+1})</div><div class="debate-content">${escHtml(d.bear||'-')}</div></div>
     </div>`).join('');
 
+  // Layer 1.5: Situation Summary
+  const sit = data.situation_summary || {};
+  const situationHtml = sit.snapshot_text ? `
+    <div class="card" style="margin-bottom:14px;border-left:3px solid var(--amber)">
+      <div class="card-header">
+        <h3>📋 Layer 1.5 · 形势快照</h3>
+        <span style="font-size:11px;color:var(--text-tertiary)">Situation Summariser</span>
+      </div>
+      <div class="card-body">
+        <p style="margin-bottom:8px;line-height:1.7">${escHtml(sit.snapshot_text||'-')}</p>
+        ${(sit.key_drivers||[]).length?`<div style="margin-bottom:6px"><strong>关键驱动：</strong>${sit.key_drivers.map(k=>'• '+escHtml(k)).join(' ')}</div>`:''}
+        ${(sit.uncertainties||[]).length?`<div style="color:var(--amber);font-size:12px"><strong>分析师分歧：</strong>${sit.uncertainties.map(u=>escHtml(u)).join('；')}</div>`:''}
+      </div>
+    </div>` : '';
+
   // Layer III: Research Manager
   const mgr = data.manager_report || {};
   const managerHtml = mgr.summary ? `
@@ -1559,23 +1574,31 @@ function renderAnalyze(data) {
       </div>
     </div>` : '';
 
-  // Layer V: Dual Risk Reviews
+  // Layer V: Triple Risk Reviews
   const risks = data.risk_reviews || [];
   const riskHtml = risks.length ? risks.map(r => `
     <div class="card" style="margin-bottom:10px;border-left:3px solid ${r.aggressive_stance==='reject'?'var(--red)':r.aggressive_stance==='modify'?'var(--amber)':'var(--green)'}">
       <div class="card-header">
-        <h3>🔴 激进风控</h3>
+        <h3>🟢 激进风控</h3>
         <span class="tag tag-${r.aggressive_stance==='reject'?'red':r.aggressive_stance==='modify'?'amber':'green'}">${escHtml(r.aggressive_stance)}</span>
       </div>
       <div class="card-body" style="font-size:13px;line-height:1.6">${escHtml(r.aggressive||'-')}</div>
     </div>
     <div class="card" style="margin-bottom:10px;border-left:3px solid ${r.conservative_stance==='reject'?'var(--red)':r.conservative_stance==='modify'?'var(--amber)':'var(--green)'}">
       <div class="card-header">
-        <h3>🟢 保守风控</h3>
+        <h3>🔴 保守风控</h3>
         <span class="tag tag-${r.conservative_stance==='reject'?'red':r.conservative_stance==='modify'?'amber':'green'}">${escHtml(r.conservative_stance)}</span>
       </div>
       <div class="card-body" style="font-size:13px;line-height:1.6">${escHtml(r.conservative||'-')}</div>
-    </div>`).join('') : '';
+    </div>
+    ${r.neutral?`
+    <div class="card" style="margin-bottom:10px;border-left:3px solid ${r.neutral_stance==='reject'?'var(--red)':r.neutral_stance==='modify'?'var(--amber)':'var(--green)'}">
+      <div class="card-header">
+        <h3>⚪ 中立风控</h3>
+        <span class="tag tag-${r.neutral_stance==='reject'?'red':r.neutral_stance==='modify'?'amber':'green'}">${escHtml(r.neutral_stance)}</span>
+      </div>
+      <div class="card-body" style="font-size:13px;line-height:1.6">${escHtml(r.neutral||'-')}</div>
+    </div>`:''}`).join('') : '';
 
   // Layer VI final verdict
   const finalVerdict = risks.length && risks[0].final_verdict ? risks[0].final_verdict : (data.reasoning || '');
@@ -1630,11 +1653,12 @@ function renderAnalyze(data) {
       <div class="card-header"><h3>⚔️ Layer II · 多空辩论</h3></div>
       <div class="card-body">${debates}</div>
     </div>`:''}
+    ${situationHtml}
     ${managerHtml}
     ${traderHtml}
     ${riskHtml?`
     <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><h3>🛡️ Layer V · 双视角风控审议</h3></div>
+      <div class="card-header"><h3>🛡️ Layer V · 三视角风控审议</h3></div>
       <div class="card-body">${riskHtml}</div>
     </div>`:''}
     <div class="card" style="margin-bottom:14px">
