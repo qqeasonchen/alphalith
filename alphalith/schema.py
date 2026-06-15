@@ -40,6 +40,35 @@ class DebateRound:
 
 
 @dataclass
+class ManagerReport:
+    """研究经理 — 汇总多空辩论后产出平衡分析。"""
+    summary: str = ""
+    stance: Literal["bullish", "bearish", "neutral"] = "neutral"
+    confidence: float = 0.5
+    key_points: list[str] = field(default_factory=list)
+
+
+@dataclass
+class TraderReport:
+    """交易员 — 独立决策（买卖/仓位/时机）。"""
+    action: Literal["buy", "sell", "hold"] = "hold"
+    confidence: float = 0.0
+    position_pct: float = 0.0       # 仓位百分比
+    entry_strategy: str = ""        # 入场策略
+    reasoning: str = ""
+
+
+@dataclass
+class RiskReview:
+    """风控审议 — 双视角 (aggressive + conservative)。"""
+    aggressive: str = ""
+    aggressive_stance: Literal["approve", "reject", "modify"] = "approve"
+    conservative: str = ""
+    conservative_stance: Literal["approve", "reject", "modify"] = "approve"
+    final_verdict: str = ""         # 基金经理最终判定
+
+
+@dataclass
 class FeeBreakdown:
     commission: float = 0.0
     stamp_tax: float = 0.0
@@ -72,10 +101,13 @@ class Decision:
     id: str = ""
     timestamp: datetime = field(default_factory=_utcnow)
 
-    # 推理链路
+    # 推理链路 (6 层 12 节点)
     agent_reports: list[AgentReport] = field(default_factory=list)
     debate: list[DebateRound] = field(default_factory=list)
-    risk_review: str = ""
+    manager_report: ManagerReport = field(default_factory=ManagerReport)
+    trader_report: TraderReport = field(default_factory=TraderReport)
+    risk_reviews: list[RiskReview] = field(default_factory=list)
+    risk_review: str = ""           # deprecated — 保留兼容
     reasoning: str = ""
 
     # 市场规则

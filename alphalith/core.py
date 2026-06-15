@@ -1,84 +1,145 @@
 """
-Core council — 调度全流程并产出 ADP Decision。
+Core council v0.4.0 — 6 层 12 节点投研流水线 并产出 ADP Decision。
+
+  Layer I   (4 节点) 技术/基本面/新闻/情绪分析师
+  Layer II  (2 节点) 多头+空头研究员（辩论）
+  Layer III (1 节点) 研究经理 → 汇总平衡报告
+  Layer IV  (1 节点) 交易员 → 独立决策
+  Layer V   (2 节点) 激进+保守风控 → 双视角审议
+  Layer VI  (1 节点) 基金经理 → 最终审批
+
+总计 11 次 LLM 调用（standard depth），deep 模式 13 次。
 """
 from __future__ import annotations
 
 import hashlib
 from datetime import datetime
+from typing import Optional
 
 from . import journal
-from .agents import run_analysts, run_debate
+from .agents import (
+    run_analysts,
+    run_debate,
+    run_research_manager,
+    run_trader,
+    run_risk_reviews,
+    run_fund_manager,
+    make_snapshot,
+    _FOCUS_KEYS,
+)
 from .data import load_market_data
-from .llm import get_llm
+from .llm import get_llm, LLM
 from .rules import get_rules
-from .schema import Decision, FeeBreakdown
-
-# 分析师角色列表（与 agents.py _FOCUS 同步）
-_FOCUS_KEYS = ["技术分析师", "基本面分析师", "新闻分析师", "情绪分析师"]
-
-
-def _decide_action(reports, debates) -> tuple[str, float]:
-    """简单加权：分析师 70% + 辩论 30%。"""
-    score = 0.0
-    weight = 0.0
-    for r in reports:
-        s = {"bullish": 1, "neutral": 0, "bearish": -1}[r.stance]
-        score += s * r.confidence
-        weight += r.confidence
-    bull_count = sum(1 for r in reports if r.stance == "bullish")
-    bear_count = sum(1 for r in reports if r.stance == "bearish")
-    avg = score / max(weight, 1e-6)
-    if avg > 0.25 and bull_count >= 2:
-        return "buy", min(0.95, 0.55 + abs(avg) * 0.4)
-    if avg < -0.25 and bear_count >= 2:
-        return "sell", min(0.95, 0.55 + abs(avg) * 0.4)
-    return "hold", min(0.95, 0.5 + abs(avg) * 0.2)
+from .schema import (
+    Decision, FeeBreakdown, AgentReport, DebateRound,
+    ManagerReport, TraderReport, RiskReview,
+)
 
 
-def _make_id(symbol: str) -> str:
-    raw = f"{symbol}-{datetime.utcnow().isoformat()}"
-    return "ALH-" + hashlib.sha1(raw.encode()).hexdigest()[:10].upper()
+def analyze(
+    symbol: str,
+    depth: str = "standard",
+    persist: bool = True,
+    progress_cb: callable = None,
+) -> Decision:
+    """主入口：6 层 12 节点全流程分析。
 
-
-def analyze(symbol: str, depth: str = "standard", persist: bool = True) -> Decision:
-    """主入口：分析任意标的并返回 ADP v1.0 决策对象。
-
-    depth: quick | standard | deep
-    persist: 是否落库到 SQLite journal（默认开），库位由 ALPHALITH_DB_PATH 控制。
+    Args:
+        symbol: 标的代码
+        depth: quick | standard | deep
+        persist: 是否落库
+        progress_cb: 进度回调 (step_name, step_index, total_steps) → None
     """
     md = load_market_data(symbol)
     rules = get_rules(md.quote.market)
     llm = get_llm()
 
-    # 1) 四分析师（外层兜底：任意环节异常都不中断 pipeline）
+    total_steps = 6
+    step_idx = [0]  # mutable counter for closure
+
+    def _step(name: str):
+        step_idx[0] += 1
+        if progress_cb:
+            progress_cb(name, step_idx[0], total_steps)
+
+    # ── Layer I: 4 分析师 ──
+    _step("分析师团队分析")
     try:
         reports = run_analysts(llm, md)
-    except Exception as e:
-        from .schema import AgentReport
+    except Exception:
         reports = [
             AgentReport(name=role, stance="neutral", confidence=0.5,
-                        summary=f"管道中断({e.__class__.__name__})，分析师降级。")
+                        summary="管道中断，分析师降级。")
             for role in _FOCUS_KEYS
         ]
 
-    # 2) 多空辩论
-    rounds = {"quick": 0, "standard": 1, "deep": 3}.get(depth, 1)
+    # ── Layer II: 多空辩论 ──
+    _step("多头空头研究员辩论")
+    debate_rounds = {"quick": 0, "standard": 1, "deep": 3}.get(depth, 1)
     try:
-        debates = run_debate(llm, md, reports, rounds)
+        debates = run_debate(llm, md, reports, debate_rounds)
     except Exception:
         debates = []
 
-    # 3) 决策合成
-    action, confidence = _decide_action(reports, debates)
+    # ── Layer III: 研究经理 ──
+    _step("研究经理汇总")
+    try:
+        manager = run_research_manager(llm, md, reports, debates)
+    except Exception:
+        manager = ManagerReport(
+            summary="研究经理调用失败，降级为中性。",
+            stance="neutral", confidence=0.5,
+        )
 
-    # 4) 仓位与价格
+    # ── Layer IV: 交易员 ──
+    _step("交易员独立决策")
+    try:
+        trader = run_trader(llm, md, manager)
+    except Exception:
+        trader = TraderReport(
+            action="hold", confidence=0.0,
+            reasoning="交易员调用失败，降级 hold。",
+        )
+
+    # ── Layer V: 双视角风控 ──
+    _step("双视角风控审议")
+    try:
+        risk = run_risk_reviews(llm, md, manager, trader)
+    except Exception:
+        risk = RiskReview(
+            aggressive="激进风控失败", aggressive_stance="approve",
+            conservative="保守风控失败", conservative_stance="approve",
+        )
+
+    # ── Layer VI: 基金经理 ──
+    _step("基金经理最终审批")
+    try:
+        fm = run_fund_manager(llm, md, manager, trader, risk)
+    except Exception:
+        fm = {"action": "hold", "confidence": 0.3, "position_pct": 0.0,
+              "reasoning": "基金经理调用失败，降级 hold。"}
+
+    action = fm["action"]
+    confidence = fm["confidence"]
+    position_pct = fm["position_pct"]
+    reasoning = fm["reasoning"]
+
+    # ── 将经理理由写入 RiskReview ──
+    risk.final_verdict = reasoning
+
+    # ── 仓位与价格 ──
     entry = md.quote.price
-    stop = entry * (0.97 if md.quote.market.value == "a_stock" else 0.95)
+    stop_loss_pct = 0.97 if md.quote.market.value == "a_stock" else 0.95
+    stop = entry * stop_loss_pct
     target = entry * 1.06
-    raw_shares = max(int(10000 / entry), 1) if action == "buy" else 0
+
+    if action == "buy":
+        raw_shares = max(int(10000 * position_pct / entry), 1)
+    else:
+        raw_shares = 0
     shares = rules.round_lot(md.quote.symbol, raw_shares)
 
-    # 5) 费用
+    # ── 费用 ──
     amount = entry * shares
     fee = rules.calc_fee(amount, "buy" if action == "buy" else "sell", shares)
     fb = FeeBreakdown(
@@ -91,15 +152,16 @@ def analyze(symbol: str, depth: str = "standard", persist: bool = True) -> Decis
         breakeven_pct=(fee.total / amount * 100) if amount else 0.0,
     )
 
-    # 6) 警告
+    # ── 警告 ──
     warns = rules.warnings(md.quote.symbol, md.quote.price, md.quote.prev_close)
 
-    # 7) 风控审议
-    risk = "通过：仓位、止损、规则约束均符合默认风控"
+    # ── 风控否决强制降级 ──
     if action == "buy" and shares == 0:
         action = "hold"
-        risk = "拒绝：建议手数 < 最小交易单位，自动改为 hold"
+        reasoning += " | 风控否决：建议手数 < 最小交易单位。"
+        risk.final_verdict = reasoning
 
+    # ── 构建 Decision ──
     decision = Decision(
         id=_make_id(md.quote.symbol),
         symbol=md.quote.symbol,
@@ -113,8 +175,11 @@ def analyze(symbol: str, depth: str = "standard", persist: bool = True) -> Decis
         take_profit=target,
         agent_reports=reports,
         debate=debates,
-        risk_review=risk,
-        reasoning="多智能体投研委员会综合 4 维分析与多空辩论给出决策。",
+        manager_report=manager,
+        trader_report=trader,
+        risk_reviews=[risk],
+        risk_review="",
+        reasoning=reasoning,
         market_warnings=warns,
         fees=fb,
         extra={
@@ -132,3 +197,174 @@ def analyze(symbol: str, depth: str = "standard", persist: bool = True) -> Decis
     if persist:
         journal.save(decision)
     return decision
+
+
+def analyze_with_sse(
+    symbol: str, depth: str = "standard", persist: bool = True
+):
+    """SSE generator: yield 每步进度 + 最终 Decision。
+    供 GUI / 外部调用，以 SSE 流式方式输出分析进度。
+
+    用法:
+        for event in analyze_with_sse("AAPL"):
+            if event["type"] == "progress":
+                print(f"[{event['step']}/{event['total']}] {event['message']}")
+            elif event["type"] == "result":
+                decision = event["decision"]
+    """
+    md = load_market_data(symbol)
+    rules = get_rules(md.quote.market)
+    llm = get_llm()
+
+    # 进度发射器
+    def _yield_progress(total):
+        step = [0]
+        def cb(name, _, _2):
+            step[0] += 1
+        return cb
+
+    total_steps = 6
+    step_i = [0]
+
+    def progress_emitter(name: str, idx: int, total: int):
+        step_i[0] = idx
+
+    # ── 依次执行并 yield 进度 ──
+
+    # Layer I
+    yield {"type": "progress", "step": 0, "total": total_steps,
+           "message": "正在启动 4 位分析师..."}
+    try:
+        reports = run_analysts(llm, md)
+    except Exception:
+        reports = [
+            AgentReport(name=role, stance="neutral", confidence=0.5,
+                        summary="管道中断，降级。")
+            for role in _FOCUS_KEYS
+        ]
+    yield {"type": "progress", "step": 1, "total": total_steps,
+           "message": "✓ 4 位分析师完成",
+           "analysts": [{"name": r.name, "stance": r.stance, "confidence": r.confidence,
+                         "summary": r.summary} for r in reports]}
+
+    # Layer II
+    yield {"type": "progress", "step": 1, "total": total_steps,
+           "message": "多头 vs 空头研究员辩论中..."}
+    debate_rounds = {"quick": 0, "standard": 1, "deep": 3}.get(depth, 1)
+    try:
+        debates = run_debate(llm, md, reports, debate_rounds)
+    except Exception:
+        debates = []
+    yield {"type": "progress", "step": 2, "total": total_steps,
+           "message": "✓ 多空辩论完成"}
+
+    # Layer III
+    yield {"type": "progress", "step": 2, "total": total_steps,
+           "message": "研究经理汇总中..."}
+    try:
+        manager = run_research_manager(llm, md, reports, debates)
+    except Exception:
+        manager = ManagerReport(summary="研究经理降级", stance="neutral", confidence=0.5)
+    yield {"type": "progress", "step": 3, "total": total_steps,
+           "message": "✓ 研究经理报告完成"}
+
+    # Layer IV
+    yield {"type": "progress", "step": 3, "total": total_steps,
+           "message": "交易员独立决策中..."}
+    try:
+        trader = run_trader(llm, md, manager)
+    except Exception:
+        trader = TraderReport(action="hold", confidence=0.0, reasoning="降级 hold")
+    yield {"type": "progress", "step": 4, "total": total_steps,
+           "message": f"✓ 交易员决策: {trader.action}"}
+
+    # Layer V
+    yield {"type": "progress", "step": 4, "total": total_steps,
+           "message": "双视角风控审议中..."}
+    try:
+        risk = run_risk_reviews(llm, md, manager, trader)
+    except Exception:
+        risk = RiskReview(aggressive="降级", aggressive_stance="approve",
+                        conservative="降级", conservative_stance="approve")
+    yield {"type": "progress", "step": 5, "total": total_steps,
+           "message": f"✓ 风控完成 (激进:{risk.aggressive_stance} / 保守:{risk.conservative_stance})"}
+
+    # Layer VI
+    yield {"type": "progress", "step": 5, "total": total_steps,
+           "message": "基金经理最终审批..."}
+    try:
+        fm = run_fund_manager(llm, md, manager, trader, risk)
+    except Exception:
+        fm = {"action": "hold", "confidence": 0.3, "position_pct": 0.0,
+              "reasoning": "降级 hold"}
+    yield {"type": "progress", "step": 6, "total": total_steps,
+           "message": f"✓ 基金经理裁定: {fm['action']}"}
+
+    risk.final_verdict = fm["reasoning"]
+
+    # Build final decision
+    action = fm["action"]
+    confidence = fm["confidence"]
+    position_pct = fm["position_pct"]
+
+    entry = md.quote.price
+    stop = entry * (0.97 if md.quote.market.value == "a_stock" else 0.95)
+    target = entry * 1.06
+    if action == "buy":
+        raw_shares = max(int(10000 * position_pct / entry), 1)
+    else:
+        raw_shares = 0
+    shares = rules.round_lot(md.quote.symbol, raw_shares)
+    amount = entry * shares
+    fee = rules.calc_fee(amount, "buy" if action == "buy" else "sell", shares)
+    fb = FeeBreakdown(
+        commission=fee.commission, stamp_tax=fee.stamp_tax,
+        transfer_fee=fee.transfer_fee, sec_fee=fee.sec_fee,
+        other=fee.other, total=fee.total,
+        breakeven_pct=(fee.total / amount * 100) if amount else 0.0,
+    )
+    warns = rules.warnings(md.quote.symbol, md.quote.price, md.quote.prev_close)
+
+    if action == "buy" and shares == 0:
+        action = "hold"
+        risk.final_verdict += " | 风控否决：最小交易单位不满足"
+
+    decision = Decision(
+        id=_make_id(md.quote.symbol),
+        symbol=md.quote.symbol,
+        market=md.quote.market,
+        currency=rules.currency,  # type: ignore[arg-type]
+        action=action,  # type: ignore[arg-type]
+        confidence=confidence,
+        suggested_shares=shares,
+        entry_price=entry,
+        stop_loss=stop,
+        take_profit=target,
+        agent_reports=reports,
+        debate=debates,
+        manager_report=manager,
+        trader_report=trader,
+        risk_reviews=[risk],
+        reasoning=fm["reasoning"],
+        market_warnings=warns,
+        fees=fb,
+        extra={
+            "depth": depth,
+            "llm": llm.name,
+            "data_source": md.quote.source,
+            "llm_calls": llm.usage.calls,
+            "llm_prompt_tokens": llm.usage.prompt_tokens,
+            "llm_completion_tokens": llm.usage.completion_tokens,
+            "llm_total_tokens": llm.usage.total_tokens,
+            "llm_tokens_estimated": llm.usage.estimated,
+        },
+    )
+    if persist:
+        journal.save(decision)
+
+    yield {"type": "result", "decision": decision}
+
+
+def _make_id(symbol: str) -> str:
+    raw = f"{symbol}-{datetime.utcnow().isoformat()}"
+    return "ALH-" + hashlib.sha1(raw.encode()).hexdigest()[:10].upper()

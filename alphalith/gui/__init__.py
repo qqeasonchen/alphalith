@@ -763,6 +763,29 @@ class GuiHandler(BaseHTTPRequestHandler):
                         {"bull": d.bull, "bear": d.bear}
                         for d in decision.debate
                     ] if decision.debate else [],
+                    "manager_report": {
+                        "summary": decision.manager_report.summary,
+                        "stance": decision.manager_report.stance,
+                        "confidence": decision.manager_report.confidence,
+                        "key_points": decision.manager_report.key_points,
+                    } if decision.manager_report else None,
+                    "trader_report": {
+                        "action": decision.trader_report.action,
+                        "confidence": decision.trader_report.confidence,
+                        "position_pct": decision.trader_report.position_pct,
+                        "entry_strategy": decision.trader_report.entry_strategy,
+                        "reasoning": decision.trader_report.reasoning,
+                    } if decision.trader_report else None,
+                    "risk_reviews": [
+                        {
+                            "aggressive": r.aggressive,
+                            "aggressive_stance": r.aggressive_stance,
+                            "conservative": r.conservative,
+                            "conservative_stance": r.conservative_stance,
+                            "final_verdict": r.final_verdict,
+                        }
+                        for r in (decision.risk_reviews or [])
+                    ] if decision.risk_reviews else [],
                     "risk_review": decision.risk_review,
                     "reasoning": decision.reasoning,
                     "market_warnings": list(decision.market_warnings or []),
@@ -784,7 +807,7 @@ class GuiHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/analyze/stream":
-            # SSE 流式分析：拆解 analyze() 各阶段并实时回传
+            # SSE 流式分析 v0.4：6层12节点全流水线
             try:
                 body = json.loads(self._read_body().decode("utf-8"))
                 symbol = body.get("symbol", "")
@@ -799,190 +822,82 @@ class GuiHandler(BaseHTTPRequestHandler):
 
             self._send_sse_headers()
             try:
-                self._sse_send("progress", {"stage": "init", "pct": 5, "msg": f"准备分析 {symbol}..."})
+                from ..core import analyze_with_sse
 
-                from ..data import load_market_data
-                from ..rules import get_rules
-                from ..llm import get_llm
-                from ..agents import run_analysts, run_debate
-                from ..core import _decide_action, _make_id
-                from ..schema import Decision, FeeBreakdown, AgentReport
-                from .. import journal
+                self._sse_send("progress", {"stage": "init", "pct": 5, "msg": f"🔍 启动 6 层分析流水线: {symbol}..."})
 
-                self._sse_send("progress", {"stage": "fetch", "pct": 15, "msg": "抓取行情/新闻/基本面..."})
-                md = load_market_data(symbol)
-                rules = get_rules(md.quote.market)
-                llm = get_llm()
-                self._sse_send("quote", {
-                    "symbol": md.quote.symbol,
-                    "name": md.quote.name,
-                    "market": md.quote.market.value,
-                    "price": md.quote.price,
-                    "prev_close": md.quote.prev_close,
-                    "change_pct": md.quote.change_pct,
-                    "volume": md.quote.volume,
-                    "source": md.quote.source,
-                    "history_summary": md.history_summary,
-                    "fundamental_note": md.fundamental_note,
-                    "sentiment_note": md.sentiment_note,
-                    "news_headlines": list(md.news_headlines[:5]),
-                })
-
-                # 1) 4 分析师 — 逐个流式
-                from ..agents import _make_snapshot, _ANALYST_PROMPT, _FOCUS, _parse
-                snapshot = _make_snapshot(md)
-                reports = []
-                roles = list(_FOCUS.keys())
-                for idx, (role, focus) in enumerate(_FOCUS.items()):
-                    self._sse_send("progress", {
-                        "stage": "analyst",
-                        "pct": 20 + int(idx * 12),
-                        "msg": f"调用 {role} ({idx+1}/{len(roles)})...",
-                        "agent": role,
-                    })
-                    prompt = _ANALYST_PROMPT.format(
-                        role=role, symbol=md.quote.symbol, snapshot=snapshot, focus=focus
-                    )
-                    try:
-                        reply = llm.chat(
-                            prompt,
-                            system="你是严谨、可量化的金融分析师。只引用快照中的事实，禁止虚构数字。",
-                        )
-                        rep = _parse(reply, role)
-                    except Exception as e:
-                        rep = AgentReport(name=role, stance="neutral", confidence=0.5,
-                                          summary=f"调用失败({e.__class__.__name__})，已降级。")
-                    reports.append(rep)
-                    self._sse_send("analyst", {
-                        "name": rep.name,
-                        "stance": rep.stance,
-                        "confidence": rep.confidence,
-                        "summary": rep.summary,
-                    })
-
-                # 2) 多空辩论 — 逐轮流式
-                rounds = {"quick": 0, "standard": 1, "deep": 3}.get(depth, 1)
-                debates = []
-                if rounds > 0:
-                    summary = "\n".join(
-                        f"- {r.name}：{r.stance} ({r.confidence:.0%}) {r.summary}" for r in reports
-                    )
-                    last_bull = ""
-                    last_bear = ""
-                    for i in range(rounds):
+                for event in analyze_with_sse(symbol, depth=depth, persist=persist):
+                    if event["type"] == "progress":
+                        pct = int(event["step"] / event["total"] * 100)
                         self._sse_send("progress", {
-                            "stage": "debate",
-                            "pct": 70 + int(i * 8),
-                            "msg": f"多空辩论 第 {i+1} 轮 (共 {rounds} 轮)...",
-                            "round": i + 1,
-                            "total_rounds": rounds,
+                            "stage": f"layer_{event['step']}",
+                            "pct": pct,
+                            "msg": event["message"],
+                            "step": event["step"],
+                            "total": event["total"],
                         })
-                        rebuttal = f"\n上一轮对手观点（请反驳）：{last_bear}\n" if i > 0 else ""
-                        try:
-                            bull = llm.chat(
-                                f"你是「看多研究员」。\n\n【市场快照】\n{snapshot}\n\n"
-                                f"【4 位分析师结论】\n{summary}\n{rebuttal}\n"
-                                f"请给出 80 字以内的看多论点，必须引用快照中的具体数字。",
-                                system="只输出论点本身，不要前缀，不要客套。",
-                            )
-                            last_bull = bull.strip()[:300]
-                        except Exception as e:
-                            last_bull = f"看多调用失败({e.__class__.__name__})"
-                        self._sse_send("debate_bull", {"round": i + 1, "bull": last_bull})
-
-                        try:
-                            bear = llm.chat(
-                                f"你是「看空研究员」。\n\n【市场快照】\n{snapshot}\n\n"
-                                f"【4 位分析师结论】\n{summary}\n"
-                                f"\n上一轮对手观点（请反驳）：{last_bull}\n"
-                                f"请给出 80 字以内的看空论点，必须引用快照中的具体数字。",
-                                system="只输出论点本身，不要前缀，不要客套。",
-                            )
-                            last_bear = bear.strip()[:300]
-                        except Exception as e:
-                            last_bear = f"看空调用失败({e.__class__.__name__})"
-                        self._sse_send("debate_bear", {"round": i + 1, "bear": last_bear})
-
-                        from ..schema import DebateRound
-                        debates.append(DebateRound(bull=last_bull, bear=last_bear))
-
-                # 3) 决策合成
-                self._sse_send("progress", {"stage": "synth", "pct": 92, "msg": "综合决策与风控复核..."})
-                action, confidence = _decide_action(reports, debates)
-                entry = md.quote.price
-                stop = entry * (0.97 if md.quote.market.value == "a_stock" else 0.95)
-                target = entry * 1.06
-                raw_shares = max(int(10000 / entry), 1) if action == "buy" else 0
-                shares = rules.round_lot(md.quote.symbol, raw_shares)
-                amount = entry * shares
-                fee = rules.calc_fee(amount, "buy" if action == "buy" else "sell", shares)
-                fb = FeeBreakdown(
-                    commission=fee.commission, stamp_tax=fee.stamp_tax,
-                    transfer_fee=fee.transfer_fee, sec_fee=fee.sec_fee,
-                    other=fee.other, total=fee.total,
-                    breakeven_pct=(fee.total / amount * 100) if amount else 0.0,
-                )
-                warns = rules.warnings(md.quote.symbol, md.quote.price, md.quote.prev_close)
-                risk = "通过：仓位、止损、规则约束均符合默认风控"
-                if action == "buy" and shares == 0:
-                    action = "hold"
-                    risk = "拒绝：建议手数 < 最小交易单位，自动改为 hold"
-
-                decision = Decision(
-                    id=_make_id(md.quote.symbol),
-                    symbol=md.quote.symbol,
-                    market=md.quote.market,
-                    currency=rules.currency,  # type: ignore[arg-type]
-                    action=action,  # type: ignore[arg-type]
-                    confidence=confidence,
-                    suggested_shares=shares,
-                    entry_price=entry,
-                    stop_loss=stop,
-                    take_profit=target,
-                    agent_reports=reports,
-                    debate=debates,
-                    risk_review=risk,
-                    reasoning="多智能体投研委员会综合 4 维分析与多空辩论给出决策。",
-                    market_warnings=warns,
-                    fees=fb,
-                    extra={
-                        "depth": depth,
-                        "llm": llm.name,
-                        "data_source": md.quote.source,
-                        "llm_calls": llm.usage.calls,
-                        "llm_prompt_tokens": llm.usage.prompt_tokens,
-                        "llm_completion_tokens": llm.usage.completion_tokens,
-                        "llm_total_tokens": llm.usage.total_tokens,
-                        "llm_tokens_estimated": llm.usage.estimated,
-                    },
-                )
-                if persist:
-                    journal.save(decision)
-
-                self._sse_send("progress", {"stage": "done", "pct": 100, "msg": "✅ 分析完成"})
-                self._sse_send("done", {
-                    "id": decision.id,
-                    "symbol": decision.symbol,
-                    "market": decision.market.value,
-                    "action": decision.action,
-                    "confidence": decision.confidence,
-                    "entry_price": decision.entry_price,
-                    "stop_loss": decision.stop_loss,
-                    "take_profit": decision.take_profit,
-                    "suggested_shares": decision.suggested_shares,
-                    "risk_review": decision.risk_review,
-                    "reasoning": decision.reasoning,
-                    "market_warnings": list(decision.market_warnings or []),
-                    "fees": {
-                        "commission": fb.commission, "stamp_tax": fb.stamp_tax,
-                        "transfer_fee": fb.transfer_fee, "sec_fee": fb.sec_fee,
-                        "other": fb.other, "total": fb.total,
-                        "breakeven_pct": fb.breakeven_pct,
-                    },
-                    "currency": decision.currency.value if hasattr(decision.currency, "value") else str(decision.currency),
-                    "adp": decision.to_adp_json(),
-                    "extra": decision.extra,
-                })
+                        # Forward analyst details if present
+                        if "analysts" in event:
+                            for a in event["analysts"]:
+                                self._sse_send("analyst", a)
+                    elif event["type"] == "result":
+                        d = event["decision"]
+                        self._sse_send("progress", {"stage": "done", "pct": 100, "msg": "✅ 6 层分析完成"})
+                        self._sse_send("done", {
+                            "id": d.id,
+                            "symbol": d.symbol,
+                            "market": d.market.value,
+                            "action": d.action,
+                            "confidence": d.confidence,
+                            "entry_price": d.entry_price,
+                            "stop_loss": d.stop_loss,
+                            "take_profit": d.take_profit,
+                            "suggested_shares": d.suggested_shares,
+                            "agent_reports": [
+                                {"name": r.name, "stance": r.stance, "confidence": r.confidence, "summary": r.summary}
+                                for r in d.agent_reports
+                            ] if d.agent_reports else [],
+                            "debate": [
+                                {"bull": deb.bull, "bear": deb.bear}
+                                for deb in (d.debate or [])
+                            ],
+                            "manager_report": {
+                                "summary": d.manager_report.summary,
+                                "stance": d.manager_report.stance,
+                                "confidence": d.manager_report.confidence,
+                                "key_points": d.manager_report.key_points,
+                            } if d.manager_report else None,
+                            "trader_report": {
+                                "action": d.trader_report.action,
+                                "confidence": d.trader_report.confidence,
+                                "position_pct": d.trader_report.position_pct,
+                                "entry_strategy": d.trader_report.entry_strategy,
+                                "reasoning": d.trader_report.reasoning,
+                            } if d.trader_report else None,
+                            "risk_reviews": [
+                                {
+                                    "aggressive": r.aggressive,
+                                    "aggressive_stance": r.aggressive_stance,
+                                    "conservative": r.conservative,
+                                    "conservative_stance": r.conservative_stance,
+                                    "final_verdict": r.final_verdict,
+                                }
+                                for r in (d.risk_reviews or [])
+                            ] if d.risk_reviews else [],
+                            "reasoning": d.reasoning,
+                            "market_warnings": list(d.market_warnings or []),
+                            "fees": {
+                                "commission": d.fees.commission,
+                                "stamp_tax": d.fees.stamp_tax,
+                                "transfer_fee": d.fees.transfer_fee,
+                                "sec_fee": d.fees.sec_fee,
+                                "other": d.fees.other,
+                                "total": d.fees.total,
+                                "breakeven_pct": d.fees.breakeven_pct,
+                            },
+                            "currency": d.currency.value if hasattr(d.currency, "value") else str(d.currency),
+                            "extra": d.extra,
+                        })
             except (BrokenPipeError, ConnectionResetError):
                 pass
             except Exception as e:

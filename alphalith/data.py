@@ -402,36 +402,102 @@ def load_market_data(symbol_input: str) -> MarketData:
     quote = _fetch_quote(normalized, market)
 
     code = normalized.split(".")[0].split(":")[-1]
+    ticker = code  # for Reddit/雪球
 
     # ---------- 新闻 ----------
     news: list[str] = []
     if quote.source != "fallback":
         news = _eastmoney_news(code, market)
+
+    # ---------- 雪球情绪（A/港股） ----------
+    xq_headlines: list[str] = []
+    xq_sentiment = "无雪球数据"
+    if quote.source != "fallback" and market in (Market.A_STOCK, Market.HK_STOCK):
+        try:
+            from . import xueqiu as _xq
+            xq_headlines = _xq.top_headlines(normalized, limit=5)
+            xq = _xq.search_sentiment(normalized, name=quote.name)
+            xq_sentiment = xq.get("sentiment", "无雪球数据")
+        except Exception:
+            pass
+    # 雪球头条追加到新闻
+    for h in xq_headlines:
+        if h not in news:
+            news.append(h)
+
+    # ---------- Reddit 情绪（美股） ----------
+    reddit_sentiment = "无 Reddit 数据"
+    reddit_headlines: list[str] = []
+    if quote.source != "fallback" and market == Market.US_STOCK:
+        try:
+            from . import reddit as _rd
+            posts = _rd.search_ticker(ticker, limit=10)
+            rd = _rd.sentiment_score(posts)
+            reddit_sentiment = rd.get("sentiment", "无 Reddit 数据")
+            for p in posts[:5]:
+                h = f"[r/{p['subreddit']}] {p['title']}"
+                reddit_headlines.append(h)
+                if h not in news:
+                    news.append(h)
+        except Exception:
+            pass
+
     if not news:
         news = [
             f"{quote.name or normalized} 暂无实时新闻流，已降级",
         ]
 
-    # ---------- 基本面 ----------
-    if quote.source == "fallback":
-        fundamental = "估值近三年中位数，ROE 稳健，现金流良好（占位）"
-    elif market == Market.A_STOCK:
-        fundamental = _sina_a_fundamental(code) or "基本面数据未获取"
-    elif market == Market.HK_STOCK:
-        fundamental = _eastmoney_hk_fundamental(code) or "基本面数据未获取"
-    else:
-        fundamental = _eastmoney_us_fundamental(code) or "基本面数据未获取"
+    # ---------- 基本面（优先 financial.py） ----------
+    fundamental = ""
+    if quote.source != "fallback":
+        try:
+            from . import financial as _fin
+            f = _fin.load_financials(normalized)
+            if f.name:
+                fundamental = f.note
+        except Exception:
+            fundamental = ""
+
+    # Fallback 到旧逻辑
+    if not fundamental:
+        if quote.source == "fallback":
+            fundamental = "估值近三年中位数，ROE 稳健，现金流良好（占位）"
+        elif market == Market.A_STOCK:
+            fundamental = _sina_a_fundamental(code) or "基本面数据未获取"
+        elif market == Market.HK_STOCK:
+            fundamental = _eastmoney_hk_fundamental(code) or "基本面数据未获取"
+        else:
+            fundamental = _eastmoney_us_fundamental(code) or "基本面数据未获取"
+
+    # ---------- 情绪整合 ----------
+    parts = []
+    if quote.source != "fallback":
+        parts.append(f"实时涨跌 {quote.change_pct:+.2f}%")
+    if xq_sentiment and xq_sentiment != "无雪球数据":
+        parts.append(xq_sentiment)
+    if reddit_sentiment and reddit_sentiment != "无 Reddit 数据":
+        parts.append(reddit_sentiment)
+    if not parts:
+        parts.append("社交讨论偏正面（占位）")
+    sentiment_note = "；".join(parts)
+
+    # ---------- 数据源标记 ----------
+    sources = {
+        "quote": quote.source,
+        "news": "eastmoney" if news and "降级" not in news[0] else "fallback",
+    }
+    if xq_headlines:
+        sources["xueqiu"] = f"{len(xq_headlines)} 帖"
+    if reddit_headlines:
+        sources["reddit"] = f"{len(reddit_headlines)} 帖"
 
     return MarketData(
         quote=quote,
         history_summary=_make_history_summary(quote),
         news_headlines=news,
-        sentiment_note=(
-            "社交讨论偏正面（占位）" if quote.source == "fallback"
-            else f"实时涨跌 {quote.change_pct:+.2f}%，市场情绪与价格同步。"
-        ),
+        sentiment_note=sentiment_note,
         fundamental_note=fundamental,
-        sources={"quote": quote.source, "news": "eastmoney" if news and "降级" not in news[0] else "fallback"},
+        sources=sources,
     )
 
 

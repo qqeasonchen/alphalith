@@ -630,7 +630,7 @@ a { color:inherit; text-decoration:none; }
   <!-- ====== SIDEBAR ====== -->
   <aside class="app-sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div><span class="logo-text">Alphalith</span><span class="logo-sub">v0.3.0</span></div>
+      <div><span class="logo-text">Alphalith</span><span class="logo-sub">v0.4.0</span></div>
     </div>
     <nav class="sidebar-menu-wrap" id="sidebarMenu">
       <div class="menu-item active" data-page="research">
@@ -686,7 +686,7 @@ a { color:inherit; text-decoration:none; }
           <div class="user-status" id="userStatus">● 请先登录</div>
         </div>
       </div>
-      <div class="version">Alphalith v0.3.0 · AI 投研引擎</div>
+      <div class="version">Alphalith v0.4.0 · 7角色12节点 AI 投研引擎</div>
     </div>
   </aside>
 
@@ -1525,11 +1525,60 @@ function renderAnalyze(data) {
       <div class="card-body">${escHtml(r.summary||'-')}</div>
     </div>`).join('');
 
-  const debates = (data.debate || []).map(d => `
+  const debates = (data.debate || []).map((d,i) => `
     <div class="debate-row">
-      <div class="debate-bull"><div class="debate-label">🐂 看多 ${d.round?'(R'+d.round+')':''}</div><div class="debate-content">${escHtml(d.bull||'-')}</div></div>
-      <div class="debate-bear"><div class="debate-label">🐻 看空 ${d.round?'(R'+d.round+')':''}</div><div class="debate-content">${escHtml(d.bear||'-')}</div></div>
+      <div class="debate-bull"><div class="debate-label">🐂 多头研究员 (R${i+1})</div><div class="debate-content">${escHtml(d.bull||'-')}</div></div>
+      <div class="debate-bear"><div class="debate-label">🐻 空头研究员 (R${i+1})</div><div class="debate-content">${escHtml(d.bear||'-')}</div></div>
     </div>`).join('');
+
+  // Layer III: Research Manager
+  const mgr = data.manager_report || {};
+  const managerHtml = mgr.summary ? `
+    <div class="card" style="margin-bottom:14px;border-left:3px solid var(--blue)">
+      <div class="card-header">
+        <h3>📋 研究经理汇总</h3>
+        <span class="tag tag-${mgr.stance==='bullish'?'green':mgr.stance==='bearish'?'red':'amber'}">${escHtml(mgr.stance||'neutral')}</span>
+      </div>
+      <div class="card-body">
+        <p style="margin-bottom:6px;line-height:1.7">${escHtml(mgr.summary||'-')}</p>
+        ${(mgr.key_points||[]).length?`<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)">${mgr.key_points.map(k=>'• '+escHtml(k)).join('<br>')}</div>`:''}
+      </div>
+    </div>` : '';
+
+  // Layer IV: Trader
+  const tr = data.trader_report || {};
+  const traderHtml = tr.action ? `
+    <div class="card" style="margin-bottom:14px;border-left:3px solid var(--amber)">
+      <div class="card-header">
+        <h3>💼 交易员决策</h3>
+        <span class="tag tag-${tr.action==='buy'?'green':tr.action==='sell'?'red':'amber'}">${escHtml(tr.action)} · ${(tr.position_pct*100||0).toFixed(0)}%仓</span>
+      </div>
+      <div class="card-body">
+        <p style="margin-bottom:4px"><strong>入场策略：</strong>${escHtml(tr.entry_strategy||'无')}</p>
+        <p style="color:var(--text-secondary);line-height:1.7">${escHtml(tr.reasoning||'-')}</p>
+      </div>
+    </div>` : '';
+
+  // Layer V: Dual Risk Reviews
+  const risks = data.risk_reviews || [];
+  const riskHtml = risks.length ? risks.map(r => `
+    <div class="card" style="margin-bottom:10px;border-left:3px solid ${r.aggressive_stance==='reject'?'var(--red)':r.aggressive_stance==='modify'?'var(--amber)':'var(--green)'}">
+      <div class="card-header">
+        <h3>🔴 激进风控</h3>
+        <span class="tag tag-${r.aggressive_stance==='reject'?'red':r.aggressive_stance==='modify'?'amber':'green'}">${escHtml(r.aggressive_stance)}</span>
+      </div>
+      <div class="card-body" style="font-size:13px;line-height:1.6">${escHtml(r.aggressive||'-')}</div>
+    </div>
+    <div class="card" style="margin-bottom:10px;border-left:3px solid ${r.conservative_stance==='reject'?'var(--red)':r.conservative_stance==='modify'?'var(--amber)':'var(--green)'}">
+      <div class="card-header">
+        <h3>🟢 保守风控</h3>
+        <span class="tag tag-${r.conservative_stance==='reject'?'red':r.conservative_stance==='modify'?'amber':'green'}">${escHtml(r.conservative_stance)}</span>
+      </div>
+      <div class="card-body" style="font-size:13px;line-height:1.6">${escHtml(r.conservative||'-')}</div>
+    </div>`).join('') : '';
+
+  // Layer VI final verdict
+  const finalVerdict = risks.length && risks[0].final_verdict ? risks[0].final_verdict : (data.reasoning || '');
 
   const fees = data.fees || {};
   const isBull = data.action && data.action.includes('buy');
@@ -1548,10 +1597,8 @@ function renderAnalyze(data) {
     ? ` · ${extra.llm}: ${extra.llm_total_tokens} tokens (in ${extra.llm_prompt_tokens||0} / out ${extra.llm_completion_tokens||0})${extra.llm_tokens_estimated?' [估算]':''} · ${extra.llm_calls||0} 次调用`
     : '';
 
-  const adpJson = data.adp ? JSON.stringify(data.adp, null, 2) : '';
-
   // 把 adp 暂存到 window 供导出
-  window.__lastAdp = data.adp;
+  window.__lastAdp = data.adp || data;
   window.__lastSymbol = data.symbol || '';
 
   document.querySelector('#researchResult').innerHTML = `
@@ -1575,27 +1622,30 @@ function renderAnalyze(data) {
       </div>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><h3>👥 四分析师报告</h3></div>
+      <div class="card-header"><h3>👥 Layer I · 四分析师报告</h3></div>
       ${reports||'<div class="card-body" style="color:var(--text-tertiary)">暂无报告</div>'}
     </div>
     ${debates?`
     <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><h3>⚔️ 多空辩论</h3></div>
+      <div class="card-header"><h3>⚔️ Layer II · 多空辩论</h3></div>
       <div class="card-body">${debates}</div>
     </div>`:''}
+    ${managerHtml}
+    ${traderHtml}
+    ${riskHtml?`
     <div class="card" style="margin-bottom:14px">
-      <div class="card-header"><h3>📋 投资决策</h3>
-        ${adpJson?'<button class="btn-secondary" style="font-size:11px;padding:4px 10px" onclick="exportAdp()">📥 导出 ADP JSON</button>':''}
-      </div>
+      <div class="card-header"><h3>🛡️ Layer V · 双视角风控审议</h3></div>
+      <div class="card-body">${riskHtml}</div>
+    </div>`:''}
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-header"><h3>🏛️ Layer VI · 基金经理最终裁定</h3></div>
       <div class="card-body">
-        <p style="margin-bottom:8px"><strong>建议操作：</strong>${escHtml(data.action||'-')}</p>
-        <p style="color:var(--text-secondary);line-height:1.7">${escHtml(data.reasoning||'-')}</p>
+        <p style="margin-bottom:8px"><strong>最终操作：</strong>${escHtml(data.action||'-')}</p>
+        <p style="color:var(--text-secondary);line-height:1.7">${escHtml(finalVerdict||'-')}</p>
         ${fees.total?`<p style="margin-top:10px;font-size:12px;color:var(--text-tertiary)">
           手续费: ${data.currency||'¥'}${fees.total} (佣金 ${fees.commission||0} · 印花税 ${fees.stamp_tax||0} · 过户费 ${fees.transfer_fee||0} · SEC ${fees.sec_fee||0} · 其他 ${fees.other||0}) · 保本涨幅: ${fees.breakeven_pct}%${tokenStr}</p>`:''}
       </div>
     </div>
-    ${adpJson?`<div class="card"><div class="card-header"><h3>🔧 ADP 协议输出 (v1.0)</h3></div>
-      <div class="card-body"><pre style="background:var(--code-bg);border:1px solid var(--code-border);color:var(--code-text);padding:12px;border-radius:6px;font-size:11px;max-height:280px;overflow:auto">${escHtml(adpJson)}</pre></div></div>`:''}
   `;
 }
 
