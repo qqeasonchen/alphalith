@@ -40,6 +40,14 @@ class DebateRound:
 
 
 @dataclass
+class SituationSummary:
+    """形势快照 — Layer 1.5，将 4 分析师报告蒸馏为结构化摘要（≤400 tokens）。"""
+    snapshot_text: str = ""          # 蒸馏后的情势快照
+    key_drivers: list[str] = field(default_factory=list)  # 最关键的 2-3 个驱动因素
+    uncertainties: list[str] = field(default_factory=list)  # 分析师共识/分歧点
+
+
+@dataclass
 class ManagerReport:
     """研究经理 — 汇总多空辩论后产出平衡分析。"""
     summary: str = ""
@@ -60,11 +68,13 @@ class TraderReport:
 
 @dataclass
 class RiskReview:
-    """风控审议 — 双视角 (aggressive + conservative)。"""
+    """风控审议 — 三视角 (aggressive + conservative + neutral)。"""
     aggressive: str = ""
     aggressive_stance: Literal["approve", "reject", "modify"] = "approve"
     conservative: str = ""
     conservative_stance: Literal["approve", "reject", "modify"] = "approve"
+    neutral: str = ""
+    neutral_stance: Literal["approve", "reject", "modify"] = "approve"
     final_verdict: str = ""         # 基金经理最终判定
 
 
@@ -101,8 +111,9 @@ class Decision:
     id: str = ""
     timestamp: datetime = field(default_factory=_utcnow)
 
-    # 推理链路 (6 层 12 节点)
+    # 推理链路 (7 层 13 节点)
     agent_reports: list[AgentReport] = field(default_factory=list)
+    situation_summary: SituationSummary = field(default_factory=SituationSummary)
     debate: list[DebateRound] = field(default_factory=list)
     manager_report: ManagerReport = field(default_factory=ManagerReport)
     trader_report: TraderReport = field(default_factory=TraderReport)
