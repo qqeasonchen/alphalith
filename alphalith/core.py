@@ -1,14 +1,15 @@
 """
-Core council v0.4.0 — 6 层 12 节点投研流水线 并产出 ADP Decision。
+Core council v0.4.1 — 7 层 13 节点投研流水线 并产出 ADP Decision。
 
-  Layer I   (4 节点) 技术/基本面/新闻/情绪分析师
-  Layer II  (2 节点) 多头+空头研究员（辩论）
-  Layer III (1 节点) 研究经理 → 汇总平衡报告
-  Layer IV  (1 节点) 交易员 → 独立决策
-  Layer V   (2 节点) 激进+保守风控 → 双视角审议
-  Layer VI  (1 节点) 基金经理 → 最终审批
+  Layer I    (4 节点) 技术/基本面/新闻/情绪分析师
+  Layer 1.5  (1 节点) 形势摘要 → 蒸馏分析师报告
+  Layer II   (2 节点) 多头+空头研究员（辩论）
+  Layer III  (1 节点) 研究经理 → 汇总平衡报告
+  Layer IV   (1 节点) 交易员 → 独立决策
+  Layer V    (3 节点) 激进+保守+中立风控 → 三视角审议
+  Layer VI   (1 节点) 基金经理 → 最终审批
 
-总计 11 次 LLM 调用（standard depth），deep 模式 13 次。
+总计 13 次 LLM 调用（standard depth），deep 模式 15 次。
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from typing import Optional
 from . import journal
 from .agents import (
     run_analysts,
+    run_situation_summariser,
     run_debate,
     run_research_manager,
     run_trader,
@@ -32,7 +34,7 @@ from .llm import get_llm, LLM
 from .rules import get_rules
 from .schema import (
     Decision, FeeBreakdown, AgentReport, DebateRound,
-    ManagerReport, TraderReport, RiskReview,
+    SituationSummary, ManagerReport, TraderReport, RiskReview,
 )
 
 
@@ -42,7 +44,7 @@ def analyze(
     persist: bool = True,
     progress_cb: callable = None,
 ) -> Decision:
-    """主入口：6 层 12 节点全流程分析。
+    """主入口：7 层 13 节点全流程分析。
 
     Args:
         symbol: 标的代码
@@ -54,7 +56,7 @@ def analyze(
     rules = get_rules(md.quote.market)
     llm = get_llm()
 
-    total_steps = 6
+    total_steps = 7
     step_idx = [0]  # mutable counter for closure
 
     def _step(name: str):
@@ -72,6 +74,16 @@ def analyze(
                         summary="管道中断，分析师降级。")
             for role in _FOCUS_KEYS
         ]
+
+    # ── Layer 1.5: 形势摘要 ──
+    _step("形势摘要总结")
+    try:
+        situation = run_situation_summariser(llm, md, reports)
+    except Exception:
+        situation = SituationSummary(
+            snapshot_text="形势摘要调用失败，降级使用原始分析师报告。",
+            key_drivers=["摘要层异常"],
+        )
 
     # ── Layer II: 多空辩论 ──
     _step("多头空头研究员辩论")
@@ -174,6 +186,7 @@ def analyze(
         stop_loss=stop,
         take_profit=target,
         agent_reports=reports,
+        situation_summary=situation,
         debate=debates,
         manager_report=manager,
         trader_report=trader,
@@ -223,7 +236,7 @@ def analyze_with_sse(
             step[0] += 1
         return cb
 
-    total_steps = 6
+    total_steps = 7
     step_i = [0]
 
     def progress_emitter(name: str, idx: int, total: int):
@@ -247,57 +260,71 @@ def analyze_with_sse(
            "analysts": [{"name": r.name, "stance": r.stance, "confidence": r.confidence,
                          "summary": r.summary} for r in reports]}
 
-    # Layer II
+    # Layer 1.5
     yield {"type": "progress", "step": 1, "total": total_steps,
+           "message": "蒸馏形势快照中..."}
+    try:
+        situation = run_situation_summariser(llm, md, reports)
+    except Exception:
+        situation = SituationSummary(
+            snapshot_text="形势摘要降级",
+            key_drivers=["管道异常"],
+        )
+    yield {"type": "progress", "step": 2, "total": total_steps,
+           "message": "✓ 形势快照完成"}
+
+    # Layer II
+    yield {"type": "progress", "step": 2, "total": total_steps,
            "message": "多头 vs 空头研究员辩论中..."}
     debate_rounds = {"quick": 0, "standard": 1, "deep": 3}.get(depth, 1)
     try:
         debates = run_debate(llm, md, reports, debate_rounds)
     except Exception:
         debates = []
-    yield {"type": "progress", "step": 2, "total": total_steps,
+    yield {"type": "progress", "step": 3, "total": total_steps,
            "message": "✓ 多空辩论完成"}
 
     # Layer III
-    yield {"type": "progress", "step": 2, "total": total_steps,
+    yield {"type": "progress", "step": 3, "total": total_steps,
            "message": "研究经理汇总中..."}
     try:
         manager = run_research_manager(llm, md, reports, debates)
     except Exception:
         manager = ManagerReport(summary="研究经理降级", stance="neutral", confidence=0.5)
-    yield {"type": "progress", "step": 3, "total": total_steps,
+    yield {"type": "progress", "step": 4, "total": total_steps,
            "message": "✓ 研究经理报告完成"}
 
     # Layer IV
-    yield {"type": "progress", "step": 3, "total": total_steps,
+    yield {"type": "progress", "step": 4, "total": total_steps,
            "message": "交易员独立决策中..."}
     try:
         trader = run_trader(llm, md, manager)
     except Exception:
         trader = TraderReport(action="hold", confidence=0.0, reasoning="降级 hold")
-    yield {"type": "progress", "step": 4, "total": total_steps,
+    yield {"type": "progress", "step": 5, "total": total_steps,
            "message": f"✓ 交易员决策: {trader.action}"}
 
     # Layer V
-    yield {"type": "progress", "step": 4, "total": total_steps,
-           "message": "双视角风控审议中..."}
+    yield {"type": "progress", "step": 5, "total": total_steps,
+           "message": "三视角风控审议中..."}
     try:
         risk = run_risk_reviews(llm, md, manager, trader)
     except Exception:
         risk = RiskReview(aggressive="降级", aggressive_stance="approve",
-                        conservative="降级", conservative_stance="approve")
-    yield {"type": "progress", "step": 5, "total": total_steps,
-           "message": f"✓ 风控完成 (激进:{risk.aggressive_stance} / 保守:{risk.conservative_stance})"}
+                        conservative="降级", conservative_stance="approve",
+                        neutral="降级", neutral_stance="approve")
+    yield {"type": "progress", "step": 6, "total": total_steps,
+           "message": f"✓ 风控完成 (激进:{risk.aggressive_stance} / 保守:{risk.conservative_stance} / 中立:{risk.neutral_stance})"}
 
     # Layer VI
-    yield {"type": "progress", "step": 5, "total": total_steps,
+    yield {"type": "progress", "step": 6, "total": total_steps,
            "message": "基金经理最终审批..."}
     try:
         fm = run_fund_manager(llm, md, manager, trader, risk)
     except Exception:
         fm = {"action": "hold", "confidence": 0.3, "position_pct": 0.0,
               "reasoning": "降级 hold"}
-    yield {"type": "progress", "step": 6, "total": total_steps,
+    yield {"type": "progress", "step": 7, "total": total_steps,
            "message": f"✓ 基金经理裁定: {fm['action']}"}
 
     risk.final_verdict = fm["reasoning"]
@@ -341,6 +368,7 @@ def analyze_with_sse(
         stop_loss=stop,
         take_profit=target,
         agent_reports=reports,
+        situation_summary=situation,
         debate=debates,
         manager_report=manager,
         trader_report=trader,
