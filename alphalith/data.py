@@ -36,6 +36,7 @@ class MarketData:
     sentiment_note: str
     fundamental_note: str
     sources: dict[str, str] = field(default_factory=dict)
+    signal_score: Optional[object] = None  # CompositeSignal（延迟导入）
 
 
 # ---------- A 股 ----------
@@ -556,6 +557,82 @@ def load_market_data(symbol_input: str) -> MarketData:
     if reddit_headlines:
         sources["reddit"] = f"{len(reddit_headlines)} 帖"
 
+    # ---------- 信号评分（A 股专属）----------
+    signal_score = None
+    if market == Market.A_STOCK and quote.source != "fallback":
+        try:
+            from .signal_score import calculate_signal_score
+
+            # 收集信号数据
+            dragon_rec = None
+            block_trades = []
+            nb_summary = ""
+            nb_holding_pct = 0.0
+            unlock_events = []
+            hot_themes = []
+
+            # 龙虎榜
+            try:
+                from . import dragon as _dragon
+
+                rec = _dragon.fetch_dragon_with_seats(code)
+                if rec:
+                    dragon_rec = rec
+            except Exception:
+                pass
+
+            # 大宗交易
+            try:
+                from . import block_trade as _bt
+
+                block_trades = _bt.fetch_block_trades(
+                    code=code, days=30, page_size=20
+                )
+            except Exception:
+                pass
+
+            # 北向资金
+            try:
+                from . import northbound as _nb
+
+                nb_summary = _nb.summarize_market_for_agent()
+                stk_nb = _nb.fetch_stock_northbound(code, days=5)
+                if stk_nb:
+                    nb_holding_pct = stk_nb[0].holding_ratio or 0.0
+            except Exception:
+                pass
+
+            # 解禁日历
+            try:
+                from . import unlock as _unlock
+
+                unlock_events = _unlock.fetch_stock_unlocks(
+                    code, future_days=30, history_days=0
+                )
+            except Exception:
+                pass
+
+            # 板块热点
+            try:
+                from . import hotboard as _hb
+
+                hot_themes = _hb.fetch_hot_themes_from_dragon(50)
+            except Exception:
+                pass
+
+            # 计算评分
+            signal_score = calculate_signal_score(
+                symbol=code,
+                dragon_rec=dragon_rec,
+                block_trades=block_trades,
+                nb_summary=nb_summary,
+                nb_holding_pct=nb_holding_pct,
+                unlock_events=unlock_events,
+                hot_themes=hot_themes,
+            )
+        except Exception:
+            pass
+
     return MarketData(
         quote=quote,
         history_summary=_make_history_summary(quote),
@@ -563,6 +640,7 @@ def load_market_data(symbol_input: str) -> MarketData:
         sentiment_note=sentiment_note,
         fundamental_note=fundamental,
         sources=sources,
+        signal_score=signal_score,
     )
 
 
