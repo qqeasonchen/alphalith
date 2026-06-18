@@ -469,6 +469,7 @@ def load_market_data(symbol_input: str) -> MarketData:
             fundamental = ""
 
     # ---------- A 股专属增强：龙虎榜 + 解禁 + 大宗交易 ----------
+    a_share_signals: list[str] = []  # 同时给情绪分析师用
     if market == Market.A_STOCK and quote.source != "fallback":
         try:
             from . import dragon as _dragon
@@ -497,6 +498,7 @@ def load_market_data(symbol_input: str) -> MarketData:
                 pass
             if extras:
                 fundamental = (fundamental + "\n\n" + "\n".join(extras)).strip()
+                a_share_signals = extras
         except Exception:
             pass
 
@@ -522,6 +524,8 @@ def load_market_data(symbol_input: str) -> MarketData:
     if not parts:
         parts.append("社交讨论偏正面（占位）")
     sentiment_note = "；".join(parts)
+    if a_share_signals:
+        sentiment_note += "\n\n[资金流信号] " + " | ".join(a_share_signals)
 
     # ---------- 数据源标记 ----------
     sources = {

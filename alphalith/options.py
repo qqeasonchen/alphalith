@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import http.cookiejar
 import json as _json
+import os
+import time
+import tempfile
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -17,8 +20,11 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
-YAHOO_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+# 用极简 UA 避免 Yahoo 针对完整 Safari UA 的反爬
+YAHOO_UA = "Mozilla/5.0"
 TIMEOUT = 15
+CRUMB_CACHE_TTL = 6 * 3600  # 6 小时
+CRUMB_CACHE_FILE = os.path.join(tempfile.gettempdir(), "alphalith_yahoo_crumb.json")
 
 # 模块级 cookie + crumb 缓存
 _cookiejar: Optional[http.cookiejar.CookieJar] = None
@@ -26,11 +32,35 @@ _crumb: Optional[str] = None
 _opener: Optional[urllib.request.OpenerDirector] = None
 
 
+def _load_crumb_cache() -> Optional[tuple]:
+    try:
+        if not os.path.exists(CRUMB_CACHE_FILE):
+            return None
+        with open(CRUMB_CACHE_FILE, "r", encoding="utf-8") as f:
+            d = _json.load(f)
+        if time.time() - d.get("ts", 0) > CRUMB_CACHE_TTL:
+            return None
+        return d.get("crumb"), d.get("cookie", [])
+    except Exception:
+        return None
+
+
+def _save_crumb_cache(crumb: str, cj: http.cookiejar.CookieJar) -> None:
+    try:
+        cookies = [{"name": c.name, "value": c.value, "domain": c.domain,
+                    "path": c.path} for c in cj]
+        with open(CRUMB_CACHE_FILE, "w", encoding="utf-8") as f:
+            _json.dump({"ts": time.time(), "crumb": crumb, "cookie": cookies}, f)
+    except Exception:
+        pass
+
+
 def _ensure_session() -> tuple:
     """
     建立带 cookie+crumb 的 opener。
-    Yahoo v7/v10 接口必须先访问 fc.yahoo.com 拿到 cookie，
-    再通过 query2/v1/test/getcrumb 拿到 crumb token。
+    Yahoo v7/v10 接口必须先访问 finance.yahoo.com 拿 cookie，
+    再通过 query1/v1/test/getcrumb 拿 crumb。
+    crumb 缓存 6 小时，命中直接复用。
     """
     global _cookiejar, _crumb, _opener
     if _opener is not None and _crumb:
@@ -40,36 +70,55 @@ def _ensure_session() -> tuple:
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
     opener.addheaders = [
         ("User-Agent", YAHOO_UA),
-        ("Accept", "text/html,application/xhtml+xml,application/json"),
+        ("Accept", "*/*"),
     ]
 
-    # Step 1: 拿 cookie（fc.yahoo.com 经常 404，但 Set-Cookie 已下发）
-    try:
-        opener.open("https://fc.yahoo.com", timeout=TIMEOUT).read()
-    except urllib.error.HTTPError:
-        pass  # 预期的 404，cookie 已落库
-    except (urllib.error.URLError, TimeoutError):
-        pass
+    # 优先走磁盘缓存
+    cached = _load_crumb_cache()
+    if cached and cached[0]:
+        crumb, cookies = cached
+        from http.cookiejar import Cookie
+        for ck in cookies:
+            cj.set_cookie(Cookie(
+                version=0, name=ck["name"], value=ck["value"],
+                port=None, port_specified=False, domain=ck["domain"],
+                domain_specified=True, domain_initial_dot=ck["domain"].startswith("."),
+                path=ck["path"], path_specified=True, secure=False,
+                expires=None, discard=False, comment=None, comment_url=None,
+                rest={}, rfc2109=False,
+            ))
+        _cookiejar, _crumb, _opener = cj, crumb, opener
+        return opener, crumb
 
-    # Step 2: 拿 crumb
-    try:
-        with opener.open("https://query2.finance.yahoo.com/v1/test/getcrumb",
-                         timeout=TIMEOUT) as resp:
-            crumb = resp.read().decode("utf-8").strip()
-    except urllib.error.HTTPError as e:
-        # 偶发 401/429，重试一次
+    # Step 1: 主站拿 cookie
+    for warm_url in ("https://finance.yahoo.com", "https://fc.yahoo.com"):
         try:
-            with opener.open("https://query2.finance.yahoo.com/v1/test/getcrumb",
-                             timeout=TIMEOUT) as resp:
-                crumb = resp.read().decode("utf-8").strip()
+            opener.open(warm_url, timeout=TIMEOUT).read(2048)
+            break
+        except urllib.error.HTTPError:
+            continue
+        except (urllib.error.URLError, TimeoutError):
+            continue
+
+    # Step 2: 拿 crumb（query1 / query2 都试一遍）
+    crumb = None
+    for crumb_url in (
+        "https://query1.finance.yahoo.com/v1/test/getcrumb",
+        "https://query2.finance.yahoo.com/v1/test/getcrumb",
+    ):
+        try:
+            with opener.open(crumb_url, timeout=TIMEOUT) as resp:
+                c = resp.read().decode("utf-8").strip()
+            if c and len(c) <= 64:
+                crumb = c
+                break
         except Exception:
-            return None, None
-    except (urllib.error.URLError, TimeoutError):
+            continue
+
+    if not crumb:
         return None, None
 
-    if not crumb or len(crumb) > 64:
-        return None, None
-
+    _save_crumb_cache(crumb, cj)
     _cookiejar = cj
     _crumb = crumb
     _opener = opener
