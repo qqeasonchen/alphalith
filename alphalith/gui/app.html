@@ -648,6 +648,17 @@ a { color:inherit; text-decoration:none; }
 }
 .auth-hint-fill:hover { background:var(--accent); color:#fff; }
 
+/* ====== 信号卡片 ====== */
+.signal-card{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;margin:6px 0;border-radius:8px;border-left:4px solid var(--border-default);background:var(--bg-elevated);}
+.signal-icon{font-size:20px;line-height:1.4;}
+.signal-body{flex:1;min-width:0;}
+.signal-title{font-weight:600;font-size:13px;color:var(--text-primary);margin-bottom:2px;}
+.signal-detail{font-size:12px;color:var(--text-secondary);line-height:1.5;}
+.signal-dragon{border-left-color:#ef4444;background:rgba(239,68,68,0.06);}
+.signal-block{border-left-color:#3b82f6;background:rgba(59,130,246,0.06);}
+.signal-north{border-left-color:#10b981;background:rgba(16,185,129,0.06);}
+.signal-hot{border-left-color:#f59e0b;background:rgba(245,158,11,0.06);}
+.signal-unlock{border-left-color:#a855f7;background:rgba(168,85,247,0.06);}
 </style>
 </head>
 <body>
@@ -1448,6 +1459,42 @@ function mdToHtml(md) {
   return h;
 }
 
+// 解析快照文本中的资金流信号（龙虎榜/大宗交易/北向/热点）
+function parseSignals(snapshotText) {
+  if (!snapshotText) return [];
+  const lines = snapshotText.split('\n');
+  const signals = [];
+  
+  // 匹配 [资金流信号] 开头的行
+  const signalLine = lines.find(l => l.includes('[资金流信号]'));
+  if (signalLine) {
+    const parts = signalLine.split('[资金流信号]')[1].split('|').map(s => s.trim()).filter(Boolean);
+    parts.forEach(p => {
+      if (p.includes('龙虎榜')) {
+        signals.push({type:'dragon', icon:'🐉', title:'龙虎榜', detail:p.replace('龙虎榜', '').trim()});
+      } else if (p.includes('大宗交易')) {
+        signals.push({type:'block', icon:'💰', title:'大宗交易', detail:p.replace('大宗交易:', '').trim()});
+      } else if (p.includes('解禁')) {
+        signals.push({type:'unlock', icon:'🔓', title:'解禁日历', detail:p.trim()});
+      }
+    });
+  }
+  
+  // 匹配北向资金行
+  const northLine = lines.find(l => l.includes('北向资金') || l.includes('北向持股'));
+  if (northLine) {
+    signals.push({type:'north', icon:'🟢', title:'北向资金', detail:northLine.trim()});
+  }
+  
+  // 匹配市场热点行
+  const hotLine = lines.find(l => l.includes('市场热点'));
+  if (hotLine) {
+    signals.push({type:'hot', icon:'🔥', title:'市场热点', detail:hotLine.replace('市场热点:', '').trim()});
+  }
+  
+  return signals;
+}
+
 // 格式化辩论文本：高亮 ⚡回击/回应 和 📌论点/质疑 标记
 function fmtDebate(text) {
   var s = escHtml(text||'-');
@@ -1711,6 +1758,19 @@ function renderAnalyze(data) {
   }
   researchHtml += '</div>';
   sections.push(researchHtml);
+
+  // ====== II.5 资金流信号卡片 ======
+  const snapshotText = (data.situation_summary && data.situation_summary.snapshot_text) || '';
+  const signalLines = parseSignals(snapshotText);
+  if (signalLines.length) {
+    let sigHtml = '<div class="report-section" id="sec-signals">';
+    sigHtml += '<h2 class="report-h1">🔋 资金流信号</h2>';
+    signalLines.forEach(s => {
+      sigHtml += `<div class="signal-card signal-${s.type}"><span class="signal-icon">${s.icon}</span><div class="signal-body"><div class="signal-title">${escHtml(s.title)}</div><div class="signal-detail">${escHtml(s.detail)}</div></div></div>`;
+    });
+    sigHtml += '</div>';
+    sections.push(sigHtml);
+  }
 
   // ====== III. Trading Team Plan ======
   const tr = data.trader_report || {};
