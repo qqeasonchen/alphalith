@@ -112,16 +112,66 @@ def _fetch_tencent_fundamental(code: str, market: Market) -> Optional[dict]:
     return {"name": parts[1], "parts": parts}
 
 
+def _enrich_with_sec(f: Financials, ticker: str) -> None:
+    """美股 SEC EDGAR 增强：补 yfinance 缺失字段，加入 raw_metrics 供分析师使用。"""
+    try:
+        from .financial_us import fetch_us_snapshot
+    except Exception:
+        return
+    snap = fetch_us_snapshot(ticker)
+    if not snap:
+        return
+    # 仅在 yfinance 字段缺失时填充 EPS
+    if not f.eps and snap.eps_diluted_latest:
+        f.eps = snap.eps_diluted_latest
+    if not f.name and snap.company:
+        f.name = snap.company
+    f.raw_metrics["sec_revenue_ttm"] = snap.revenue_ttm
+    f.raw_metrics["sec_net_income_ttm"] = snap.net_income_ttm
+    f.raw_metrics["sec_assets"] = snap.assets_latest
+    f.raw_metrics["sec_equity"] = snap.equity_latest
+    f.raw_metrics["sec_rd_ttm"] = snap.rd_expense_ttm
+    f.raw_metrics["sec_ocf_ttm"] = snap.operating_cash_flow_ttm
+    f.raw_metrics["sec_cik"] = snap.cik
+    f.source = f.source + "+SEC" if f.source else "SEC"
+
+
+def _build_from_sec_only(ticker: str, normalized: str) -> Financials:
+    """yfinance 完全失败时，用 SEC 数据构造 Financials。"""
+    try:
+        from .financial_us import fetch_us_snapshot
+    except Exception:
+        return Financials(symbol=normalized, name=ticker, source="none")
+    snap = fetch_us_snapshot(ticker)
+    if not snap:
+        return Financials(symbol=normalized, name=ticker, source="none")
+    return Financials(
+        symbol=normalized,
+        name=snap.company,
+        eps=snap.eps_diluted_latest,
+        source="SEC",
+        raw_metrics={
+            "sec_revenue_ttm": snap.revenue_ttm,
+            "sec_net_income_ttm": snap.net_income_ttm,
+            "sec_assets": snap.assets_latest,
+            "sec_equity": snap.equity_latest,
+            "sec_rd_ttm": snap.rd_expense_ttm,
+            "sec_ocf_ttm": snap.operating_cash_flow_ttm,
+            "sec_cik": snap.cik,
+        },
+    )
+
+
 def load_financials(symbol_input: str) -> Financials:
     """加载完整的财务数据。"""
     market, normalized = detect_market(symbol_input)
     code = normalized.split(".")[0].split(":")[-1]
 
-    # ── 美股: yfinance ──
+    # ── 美股: yfinance + SEC EDGAR 兜底 ──
     if market == Market.US_STOCK:
         info = _fetch_yfinance_info(code)
         if info:
-            return Financials(
+            f = Financials(
                 symbol=normalized,
                 name=info.get("shortName") or info.get("longName") or code,
                 pe=float(info.get("trailingPE") or info.get("forwardPE") or 0),
@@ -137,7 +187,11 @@ def load_financials(symbol_input: str) -> Financials:
                 source="yfinance",
                 raw_metrics={"sector": info.get("sector", ""), "industry": info.get("industry", "")},
             )
-        return Financials(symbol=normalized, name=code, source="none")
+            # SEC 增强：补充 yfinance 缺失的关键字段
+            _enrich_with_sec(f, code)
+            return f
+        # yfinance 完全失败 → SEC 兜底
+        return _build_from_sec_only(code, normalized)
 
     # ── A 股: 东财优先 ──
     if market == Market.A_STOCK:

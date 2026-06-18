@@ -455,8 +455,50 @@ def load_market_data(symbol_input: str) -> MarketData:
             f = _fin.load_financials(normalized)
             if f.name:
                 fundamental = f.note
+                # 美股 SEC 增强：把 503 GAAP 关键数加进基本面摘要
+                rm = f.raw_metrics or {}
+                if rm.get("sec_revenue_ttm"):
+                    sec_extra = (
+                        f" | SEC: 营收TTM ${rm['sec_revenue_ttm']/1e9:.1f}B"
+                        f" 净利TTM ${rm['sec_net_income_ttm']/1e9:.1f}B"
+                        f" R&D ${rm['sec_rd_ttm']/1e9:.1f}B"
+                        f" OCF ${rm['sec_ocf_ttm']/1e9:.1f}B"
+                    )
+                    fundamental += sec_extra
         except Exception:
             fundamental = ""
+
+    # ---------- A 股专属增强：龙虎榜 + 解禁 + 大宗交易 ----------
+    if market == Market.A_STOCK and quote.source != "fallback":
+        try:
+            from . import dragon as _dragon
+            from . import unlock as _unlock
+            from . import block_trade as _bt
+
+            extras: list[str] = []
+            try:
+                rec = _dragon.fetch_dragon_with_seats(code)
+                if rec:
+                    extras.append(_dragon.summarize_for_agent(rec))
+            except Exception:
+                pass
+            try:
+                events = _unlock.fetch_stock_unlocks(code, future_days=180, history_days=0)
+                line = _unlock.summarize_for_agent(events, code)
+                if line and "未来无解禁" not in line:
+                    extras.append(line)
+            except Exception:
+                pass
+            try:
+                trades = _bt.fetch_block_trades(code=code, days=30, page_size=20)
+                if trades:
+                    extras.append(_bt.summarize_for_agent(trades, code))
+            except Exception:
+                pass
+            if extras:
+                fundamental = (fundamental + "\n\n" + "\n".join(extras)).strip()
+        except Exception:
+            pass
 
     # Fallback 到旧逻辑
     if not fundamental:
