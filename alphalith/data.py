@@ -630,6 +630,10 @@ def load_market_data(symbol_input: str) -> MarketData:
                 unlock_events=unlock_events,
                 hot_themes=hot_themes,
             )
+            
+            # 把信号评分追加到 fundamental_note 末尾（让所有 agent 可见）
+            if signal_score:
+                fundamental += "\n\n" + signal_score.to_markdown()
         except Exception:
             pass
 

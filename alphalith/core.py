@@ -84,6 +84,10 @@ def analyze(
             snapshot_text="形势摘要调用失败，降级使用原始分析师报告。",
             key_drivers=["摘要层异常"],
         )
+    
+    # 追加信号评分到快照（如果 A 股且有评分）
+    if md.market == Market.A_STOCK and md.signal_score:
+        situation.snapshot_text += "\n\n" + md.signal_score.to_markdown()
 
     # ── Layer II: 多空辩论 ──
     _step("多头空头研究员辩论")
