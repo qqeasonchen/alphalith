@@ -468,13 +468,14 @@ def load_market_data(symbol_input: str) -> MarketData:
         except Exception:
             fundamental = ""
 
-    # ---------- A 股专属增强：龙虎榜 + 解禁 + 大宗交易 ----------
+    # ---------- A 股专属增强：龙虎榜 + 解禁 + 大宗交易 + 北向 ----------
     a_share_signals: list[str] = []  # 同时给情绪分析师用
     if market == Market.A_STOCK and quote.source != "fallback":
         try:
             from . import dragon as _dragon
             from . import unlock as _unlock
             from . import block_trade as _bt
+            from . import northbound as _nb
 
             extras: list[str] = []
             try:
@@ -494,6 +495,24 @@ def load_market_data(symbol_input: str) -> MarketData:
                 trades = _bt.fetch_block_trades(code=code, days=30, page_size=20)
                 if trades:
                     extras.append(_bt.summarize_for_agent(trades, code))
+            except Exception:
+                pass
+            # 北向：全市场趋势 + 个股持股
+            try:
+                mk = _nb.summarize_market_for_agent()
+                if mk:
+                    extras.append(mk)
+                stk = _nb.summarize_stock_for_agent(code)
+                if stk:
+                    extras.append(stk)
+            except Exception:
+                pass
+            # 板块/概念热点（push2 → 龙虎榜兜底）
+            try:
+                from . import hotboard as _hb
+                hot = _hb.summarize_for_agent()
+                if hot:
+                    extras.append(hot)
             except Exception:
                 pass
             if extras:

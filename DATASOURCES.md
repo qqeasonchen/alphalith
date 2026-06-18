@@ -162,19 +162,78 @@ print(summarize_for_agent(trades, "600519"))
 
 ---
 
+## 6. 东财北向资金（`northbound.py`）
+
+**端点**：`datacenter-web.eastmoney.com/api/data/v1/get`
+**Reports**：
+- `RPT_MUTUAL_DEAL_HISTORY`（日级净流入；MUTUAL_TYPE=001 沪/002 深/003-004 南向）
+- `RPT_MUTUAL_HOLDSTOCKNORTH_STA`（个股北向持股 + 1/5/10 日变动）
+
+### 关键 API
+
+```python
+from alphalith.northbound import (
+    fetch_northbound_recent_days, fetch_stock_northbound,
+    summarize_market_for_agent, summarize_stock_for_agent,
+)
+
+# 全市场近 5 日（亿元）
+days = fetch_northbound_recent_days(5)
+# [NorthboundFlow(trade_date='2026-06-18', sh_net=0.0, sz_net=-0.03, total_net=-0.03), ...]
+
+# 个股北向（季度披露 + 1/5 日变动）
+snap = fetch_stock_northbound("600519")
+# 北向持股 贵州茅台(600519) 市值851.63亿 占4.69% | 1日+0.00亿 5日+0.00亿
+```
+
+### 缓存
+
+`~/.alphalith_cache.db` SQLite，TTL 5–10min（盘后日级数据稳定，缓存安全）。
+
+### 限制 ⚠️
+
+东财 2024 年起停止盘中实时北向披露，全部改走收盘后 + 季度披露。
+个股北向只有季度末（3/6/9/12 月最后一日）数据全。
+
+---
+
+## 7. 板块/概念热点（`hotboard.py`）
+
+**降级链**：
+1. push2 行业/概念榜（盘中实时；当前部分网络环境不通）
+2. 龙虎榜上榜原因聚合（兜底，从 dragon.py 数据归纳）
+
+### 关键 API
+
+```python
+from alphalith.hotboard import fetch_top_industries, fetch_top_concepts, summarize_for_agent
+
+inds = fetch_top_industries(10)   # push2
+cons = fetch_top_concepts(10)
+print(summarize_for_agent())
+# 主路径: "热门行业 Top5: 🔴 半导体 +3.21% 主力+12.5亿 [领涨: 兆易创新]..."
+# 兜底:   "市场热点(龙虎榜归因): 大涨上榜(累计20%)×18 连续三个交易日×14 ..."
+```
+
+---
+
 ## Pipeline 注入
 
 ### `data.py` 自动叠加
 
 ```
-fundamental_note  ← SEC 摘要 (US) 或 龙虎榜+解禁+大宗交易 (A 股)
-sentiment_note    ← 龙虎榜+大宗交易 资金流信号 (A 股，双通道)
+fundamental_note  ← SEC 摘要 (US) 或 龙虎榜+解禁+大宗交易+北向+热点 (A 股)
+sentiment_note    ← 龙虎榜+大宗交易+北向+热点 资金流信号 (A 股，双通道)
 ```
 
 ### `agents.py` Prompt 强化
 
 - **基本面分析师** 看到 `SEC` 字段 → 解读毛利率/研发强度/现金流
-- **情绪分析师** 看到 `[资金流信号]` → 区分机构/游资/解禁/对倒
+- **情绪分析师** 看到 `[资金流信号]` → 区分机构/游资/解禁/对倒/北向/热点
+- **激进风控** 看到机构净买入+北向流入+大宗溢价 → 适度提仓
+- **保守风控** 看到解禁>5% / 折价>5% / 北向流出 → 缩仓或 reject
+- **中立风控** 显式列出对冲后的净信号
+- **基金经理** 红线检查（解禁>10%+仓位>30%、OCF连续负、PCR>1.5 等）
 
 ### 测试用例
 
@@ -197,6 +256,8 @@ python -c "from alphalith.financial import load_financials; f=load_financials('A
 | 东财龙虎榜 | ✅ | — | — |
 | 东财解禁 | ✅ | — | — |
 | 东财大宗 | ✅ | — | — |
+| 东财北向资金 | ✅ | — | — |
+| 板块/概念热点 | ✅ | — | — |
 
 ---
 
